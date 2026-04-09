@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ai-sports-prediction.vercel.app/api/sitemap.xml

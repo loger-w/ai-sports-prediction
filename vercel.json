@@ -1,0 +1,22 @@
+{
+  "rewrites": [
+    {
+      "source": "/:lang(en|zh)/:sport(nba|mlb)/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(Googlebot|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|facebookexternalhit|Twitterbot|LinkedInBot).*"
+        }
+      ],
+      "destination": "/api/render/:sport/:slug?lang=:lang"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    { "path": "/api/cron/resolve-results", "schedule": "0 12 * * *" }
+  ]
+}

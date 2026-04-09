@@ -1,0 +1,72 @@
+INSERT INTO sports (id, name_en, name_zh) VALUES
+  ('nba', 'NBA', 'NBA'),
+  ('mlb', 'MLB', 'MLB')
+ON CONFLICT (id) DO NOTHING;
+
+-- NBA Teams
+INSERT INTO teams (id, sport_id, name_en, name_zh, abbreviation) VALUES
+  ('hawks', 'nba', 'Atlanta Hawks', '亞特蘭大老鷹', 'ATL'),
+  ('celtics', 'nba', 'Boston Celtics', '波士頓塞爾提克', 'BOS'),
+  ('nets', 'nba', 'Brooklyn Nets', '布魯克林籃網', 'BKN'),
+  ('hornets', 'nba', 'Charlotte Hornets', '夏洛特黃蜂', 'CHA'),
+  ('bulls', 'nba', 'Chicago Bulls', '芝加哥公牛', 'CHI'),
+  ('cavaliers', 'nba', 'Cleveland Cavaliers', '克里夫蘭騎士', 'CLE'),
+  ('mavericks', 'nba', 'Dallas Mavericks', '達拉斯獨行俠', 'DAL'),
+  ('nuggets', 'nba', 'Denver Nuggets', '丹佛金塊', 'DEN'),
+  ('pistons', 'nba', 'Detroit Pistons', '底特律活塞', 'DET'),
+  ('warriors', 'nba', 'Golden State Warriors', '金州勇士', 'GSW'),
+  ('rockets', 'nba', 'Houston Rockets', '休士頓火箭', 'HOU'),
+  ('pacers', 'nba', 'Indiana Pacers', '印第安納溜馬', 'IND'),
+  ('clippers', 'nba', 'LA Clippers', '洛杉磯快艇', 'LAC'),
+  ('lakers', 'nba', 'Los Angeles Lakers', '洛杉磯湖人', 'LAL'),
+  ('grizzlies', 'nba', 'Memphis Grizzlies', '曼菲斯灰熊', 'MEM'),
+  ('heat', 'nba', 'Miami Heat', '邁阿密熱火', 'MIA'),
+  ('bucks', 'nba', 'Milwaukee Bucks', '密爾瓦基公鹿', 'MIL'),
+  ('timberwolves', 'nba', 'Minnesota Timberwolves', '明尼蘇達森林狼', 'MIN'),
+  ('pelicans', 'nba', 'New Orleans Pelicans', '紐奧良鵜鶘', 'NOP'),
+  ('knicks', 'nba', 'New York Knicks', '紐約尼克', 'NYK'),
+  ('thunder', 'nba', 'Oklahoma City Thunder', '奧克拉荷馬雷霆', 'OKC'),
+  ('magic', 'nba', 'Orlando Magic', '奧蘭多魔術', 'ORL'),
+  ('sixers', 'nba', 'Philadelphia 76ers', '費城76人', 'PHI'),
+  ('suns', 'nba', 'Phoenix Suns', '鳳凰城太陽', 'PHX'),
+  ('blazers', 'nba', 'Portland Trail Blazers', '波特蘭拓荒者', 'POR'),
+  ('kings', 'nba', 'Sacramento Kings', '沙加緬度國王', 'SAC'),
+  ('spurs', 'nba', 'San Antonio Spurs', '聖安東尼奧馬刺', 'SAS'),
+  ('raptors', 'nba', 'Toronto Raptors', '多倫多暴龍', 'TOR'),
+  ('jazz', 'nba', 'Utah Jazz', '猶他爵士', 'UTA'),
+  ('wizards', 'nba', 'Washington Wizards', '華盛頓巫師', 'WAS')
+ON CONFLICT (id) DO NOTHING;
+
+-- MLB Teams
+INSERT INTO teams (id, sport_id, name_en, name_zh, abbreviation) VALUES
+  ('diamondbacks', 'mlb', 'Arizona Diamondbacks', '亞利桑那響尾蛇', 'ARI'),
+  ('braves', 'mlb', 'Atlanta Braves', '亞特蘭大勇士', 'ATL'),
+  ('orioles', 'mlb', 'Baltimore Orioles', '巴爾的摩金鶯', 'BAL'),
+  ('redsox', 'mlb', 'Boston Red Sox', '波士頓紅襪', 'BOS'),
+  ('cubs', 'mlb', 'Chicago Cubs', '芝加哥小熊', 'CHC'),
+  ('whitesox', 'mlb', 'Chicago White Sox', '芝加哥白襪', 'CWS'),
+  ('reds', 'mlb', 'Cincinnati Reds', '辛辛那提紅人', 'CIN'),
+  ('guardians', 'mlb', 'Cleveland Guardians', '克里夫蘭守護者', 'CLE'),
+  ('rockies', 'mlb', 'Colorado Rockies', '科羅拉多落磯', 'COL'),
+  ('tigers', 'mlb', 'Detroit Tigers', '底特律老虎', 'DET'),
+  ('astros', 'mlb', 'Houston Astros', '休士頓太空人', 'HOU'),
+  ('royals', 'mlb', 'Kansas City Royals', '堪薩斯城皇家', 'KC'),
+  ('angels', 'mlb', 'Los Angeles Angels', '洛杉磯天使', 'LAA'),
+  ('dodgers', 'mlb', 'Los Angeles Dodgers', '洛杉磯道奇', 'LAD'),
+  ('marlins', 'mlb', 'Miami Marlins', '邁阿密馬林魚', 'MIA'),
+  ('brewers', 'mlb', 'Milwaukee Brewers', '密爾瓦基釀酒人', 'MIL'),
+  ('twins', 'mlb', 'Minnesota Twins', '明尼蘇達雙城', 'MIN'),
+  ('mets', 'mlb', 'New York Mets', '紐約大都會', 'NYM'),
+  ('yankees', 'mlb', 'New York Yankees', '紐約洋基', 'NYY'),
+  ('athletics', 'mlb', 'Oakland Athletics', '奧克蘭運動家', 'OAK'),
+  ('phillies', 'mlb', 'Philadelphia Phillies', '費城費城人', 'PHI'),
+  ('pirates', 'mlb', 'Pittsburgh Pirates', '匹茲堡海盜', 'PIT'),
+  ('padres', 'mlb', 'San Diego Padres', '聖地牙哥教士', 'SD'),
+  ('giants', 'mlb', 'San Francisco Giants', '舊金山巨人', 'SF'),
+  ('mariners', 'mlb', 'Seattle Mariners', '西雅圖水手', 'SEA'),
+  ('cardinals', 'mlb', 'St. Louis Cardinals', '聖路易紅雀', 'STL'),
+  ('rays', 'mlb', 'Tampa Bay Rays', '坦帕灣光芒', 'TB'),
+  ('rangers', 'mlb', 'Texas Rangers', '德州遊騎兵', 'TEX'),
+  ('bluejays', 'mlb', 'Toronto Blue Jays', '多倫多藍鳥', 'TOR'),
+  ('nationals', 'mlb', 'Washington Nationals', '華盛頓國民', 'WSH')
+ON CONFLICT (id) DO NOTHING;
