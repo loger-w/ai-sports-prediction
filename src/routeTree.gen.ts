@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LangRouteRouteImport } from './routes/$lang/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LangPredictionsRouteRouteImport } from './routes/$lang/predictions/route'
+import { Route as LangAccuracyRouteRouteImport } from './routes/$lang/accuracy/route'
+import { Route as LangSportSlugRouteRouteImport } from './routes/$lang/$sport/$slug/route'
 
 const LangRouteRoute = LangRouteRouteImport.update({
   id: '/$lang',
@@ -28,29 +30,61 @@ const LangPredictionsRouteRoute = LangPredictionsRouteRouteImport.update({
   path: '/predictions',
   getParentRoute: () => LangRouteRoute,
 } as any)
+const LangAccuracyRouteRoute = LangAccuracyRouteRouteImport.update({
+  id: '/accuracy',
+  path: '/accuracy',
+  getParentRoute: () => LangRouteRoute,
+} as any)
+const LangSportSlugRouteRoute = LangSportSlugRouteRouteImport.update({
+  id: '/$sport/$slug',
+  path: '/$sport/$slug',
+  getParentRoute: () => LangRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$lang': typeof LangRouteRouteWithChildren
+  '/$lang/accuracy': typeof LangAccuracyRouteRoute
   '/$lang/predictions': typeof LangPredictionsRouteRoute
+  '/$lang/$sport/$slug': typeof LangSportSlugRouteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$lang': typeof LangRouteRouteWithChildren
+  '/$lang/accuracy': typeof LangAccuracyRouteRoute
   '/$lang/predictions': typeof LangPredictionsRouteRoute
+  '/$lang/$sport/$slug': typeof LangSportSlugRouteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$lang': typeof LangRouteRouteWithChildren
+  '/$lang/accuracy': typeof LangAccuracyRouteRoute
   '/$lang/predictions': typeof LangPredictionsRouteRoute
+  '/$lang/$sport/$slug': typeof LangSportSlugRouteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$lang' | '/$lang/predictions'
+  fullPaths:
+    | '/'
+    | '/$lang'
+    | '/$lang/accuracy'
+    | '/$lang/predictions'
+    | '/$lang/$sport/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$lang' | '/$lang/predictions'
-  id: '__root__' | '/' | '/$lang' | '/$lang/predictions'
+  to:
+    | '/'
+    | '/$lang'
+    | '/$lang/accuracy'
+    | '/$lang/predictions'
+    | '/$lang/$sport/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/$lang'
+    | '/$lang/accuracy'
+    | '/$lang/predictions'
+    | '/$lang/$sport/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -81,15 +115,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangPredictionsRouteRouteImport
       parentRoute: typeof LangRouteRoute
     }
+    '/$lang/accuracy': {
+      id: '/$lang/accuracy'
+      path: '/accuracy'
+      fullPath: '/$lang/accuracy'
+      preLoaderRoute: typeof LangAccuracyRouteRouteImport
+      parentRoute: typeof LangRouteRoute
+    }
+    '/$lang/$sport/$slug': {
+      id: '/$lang/$sport/$slug'
+      path: '/$sport/$slug'
+      fullPath: '/$lang/$sport/$slug'
+      preLoaderRoute: typeof LangSportSlugRouteRouteImport
+      parentRoute: typeof LangRouteRoute
+    }
   }
 }
 
 interface LangRouteRouteChildren {
+  LangAccuracyRouteRoute: typeof LangAccuracyRouteRoute
   LangPredictionsRouteRoute: typeof LangPredictionsRouteRoute
+  LangSportSlugRouteRoute: typeof LangSportSlugRouteRoute
 }
 
 const LangRouteRouteChildren: LangRouteRouteChildren = {
+  LangAccuracyRouteRoute: LangAccuracyRouteRoute,
   LangPredictionsRouteRoute: LangPredictionsRouteRoute,
+  LangSportSlugRouteRoute: LangSportSlugRouteRoute,
 }
 
 const LangRouteRouteWithChildren = LangRouteRoute._addFileChildren(

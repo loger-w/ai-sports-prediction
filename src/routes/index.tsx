@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
-    throw redirect({ to: '/$lang/predictions', params: { lang: 'en' } })
+    const lang = navigator.language.startsWith('zh') ? 'zh' : 'en'
+    throw redirect({ to: '/$lang/predictions', params: { lang } })
   },
 })
