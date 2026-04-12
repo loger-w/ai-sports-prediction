@@ -1,6 +1,6 @@
-import dayjs from 'dayjs'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from '@/lib/i18n'
+import { toLocalDisplayDateTime } from '@/lib/timezone'
 import type { GameWithPrediction } from '@/services/predictions/api'
 
 interface GameDetailHeaderProps {
@@ -15,9 +15,9 @@ export function GameDetailHeader({ game }: GameDetailHeaderProps) {
 
   const homeName = lang === 'zh' ? game.home_team.name_zh : game.home_team.name_en
   const awayName = lang === 'zh' ? game.away_team.name_zh : game.away_team.name_en
-  const homeWins = prediction?.predicted_winner === 'home'
+  const homeWins = prediction?.moneyline_pick === 'home'
 
-  const gameTime = game.game_time ? dayjs(game.game_time).format('MMM D, YYYY · HH:mm') + ' ET' : null
+  const gameTime = toLocalDisplayDateTime(game.game_time)
   const isFinal = game.status === 'final'
 
   return (
