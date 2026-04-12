@@ -7,23 +7,20 @@ export type Translations = {
     nba: string; mlb: string; winner: string; overUnder: string
   }
   filter: {
-    sport: string; allSports: string; today: string; tomorrow: string
-    thisWeek: string; confidence: string; direction: string
-    high: string; medium: string; low: string
+    sport: string; allSports: string; minStars: string
+    confidence: string; direction: string
     all: string; home: string; away: string; filterButton: string
   }
   predictions: {
-    homeWinPct: string; awayWinPct: string; ouLine: string
-    over: string; under: string; vs: string
+    moneyline: string; spread: string; overUnder: string; pass: string
+    vs: string
     noResults: string; noData: string; resetFilters: string; retry: string
-    confidence: { high: string; medium: string; low: string }
   }
   gameDetail: {
     back: string; finalScore: string; scheduled: string
     aiPick: string; explanation: string; winProbability: string
     overUnder: string; notFound: string; viewDetail: string
   }
-  month: { prev: string; next: string }
 }
 
 export const en: Translations = {
@@ -34,35 +31,24 @@ export const en: Translations = {
   filter: {
     sport: 'Sport',
     allSports: 'All',
-    today: 'Today',
-    tomorrow: 'Tomorrow',
-    thisWeek: 'This Week',
+    minStars: 'Min Stars',
     confidence: 'Confidence',
     direction: 'Prediction',
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
     all: 'All',
     home: 'Home Win',
     away: 'Away Win',
     filterButton: 'Filters',
   },
   predictions: {
-    homeWinPct: 'Home Win %',
-    awayWinPct: 'Away Win %',
-    ouLine: 'O/U',
-    over: 'Over',
-    under: 'Under',
+    moneyline: 'Moneyline',
+    spread: 'Spread',
+    overUnder: 'O/U',
+    pass: 'PASS',
     vs: 'VS',
     noResults: 'No predictions match your filters.',
     noData: 'Predictions are usually updated each morning.',
     resetFilters: 'Reset Filters',
     retry: 'Retry',
-    confidence: {
-      high: 'High Confidence',
-      medium: 'Med Confidence',
-      low: 'Low Confidence',
-    },
   },
   accuracy: {
     title: 'Prediction Accuracy',
@@ -88,9 +74,5 @@ export const en: Translations = {
     overUnder: 'Over / Under',
     notFound: 'Game not found.',
     viewDetail: 'Details →',
-  },
-  month: {
-    prev: 'Previous month',
-    next: 'Next month',
   },
 }
