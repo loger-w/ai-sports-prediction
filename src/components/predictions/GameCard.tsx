@@ -2,18 +2,12 @@ import dayjs from 'dayjs'
 import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
+import { toLocalTimeString } from '@/lib/timezone'
 import type { GameWithPrediction } from '@/services/predictions/api'
-import { WinProbabilityBar } from './WinProbabilityBar'
-import { OverUnderDisplay } from './OverUnderDisplay'
+import { PredictionColumn } from './PredictionColumn'
 
 interface GameCardProps {
   game: GameWithPrediction
-}
-
-const CONF_STYLES: Record<string, { label: string; color: string; bg: string }> = {
-  high: { label: '', color: '#00e5a0', bg: 'rgba(0,229,160,0.12)' },
-  medium: { label: '', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
-  low: { label: '', color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
 }
 
 export function GameCard({ game }: GameCardProps) {
@@ -24,23 +18,36 @@ export function GameCard({ game }: GameCardProps) {
 
   const homeTeam = game.home_team
   const awayTeam = game.away_team
-  const homeWins = prediction.predicted_winner === 'home'
+  const homeWins = prediction.moneyline_pick === 'home'
 
   const homeName = lang === 'zh' ? homeTeam.name_zh : homeTeam.name_en
   const awayName = lang === 'zh' ? awayTeam.name_zh : awayTeam.name_en
 
-  const gameTime = game.game_time
-    ? dayjs(game.game_time).format('HH:mm') + ' ET'
-    : null
+  const localTime = toLocalTimeString(game.game_time)
+  const gameDate = game.game_time
+    ? dayjs(game.game_time).format('MMM D')
+    : game.game_date
 
-  const conf = CONF_STYLES[prediction.confidence_level] ?? CONF_STYLES.low
-  const confLabels = t.predictions.confidence
-  const confLabel =
-    prediction.confidence_level === 'high'
-      ? confLabels.high
-      : prediction.confidence_level === 'medium'
-        ? confLabels.medium
-        : confLabels.low
+  // Moneyline pick text
+  const moneylinePick = homeWins ? homeTeam.abbreviation : awayTeam.abbreviation
+
+  // Spread pick text: e.g. "LAL -3.5"
+  let spreadPick = ''
+  if (prediction.spread_line !== null && prediction.spread_pick !== null) {
+    const isSpreaderHome = prediction.spread_pick === 'home'
+    const abbr = isSpreaderHome ? homeTeam.abbreviation : awayTeam.abbreviation
+    const line = prediction.spread_line
+    spreadPick = `${abbr} ${line > 0 ? '+' : ''}${line}`
+  }
+
+  // O/U pick text: e.g. "O 218.5" or "U 218.5"
+  let ouPick = ''
+  let ouLineRef: string | null = null
+  if (prediction.over_under_line !== null) {
+    ouLineRef = String(prediction.over_under_line)
+    const isOver = (prediction.over_pct ?? 0) >= (prediction.under_pct ?? 0)
+    ouPick = `${isOver ? 'O' : 'U'} ${prediction.over_under_line}`
+  }
 
   return (
     <div
@@ -49,7 +56,6 @@ export function GameCard({ game }: GameCardProps) {
         'bg-[#161b22] border-[#1e2733]',
       )}
     >
-
       {/* Card header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-[#0d1117] border-b border-[#1e2733]">
         <span
@@ -58,29 +64,24 @@ export function GameCard({ game }: GameCardProps) {
         >
           {game.sport_id.toUpperCase()}
         </span>
-        {gameTime && (
+        {localTime && (
           <span
-            className="text-[11px] text-[#3a4a5a]"
+            className="text-[10px] text-[#3a4a5a]"
             style={{ fontFamily: 'var(--font-barlow-condensed)' }}
           >
-            {gameTime}
+            {localTime}
           </span>
         )}
         <span
-          className="text-[10px] font-bold tracking-[0.12em] px-2 py-0.5 rounded"
-          style={{
-            fontFamily: 'var(--font-barlow-condensed)',
-            color: conf.color,
-            background: conf.bg,
-          }}
+          className="text-[10px] text-[#3a4a5a]"
+          style={{ fontFamily: 'var(--font-barlow-condensed)' }}
         >
-          {confLabel}
+          {gameDate}
         </span>
       </div>
 
-      {/* Card body */}
-      <div className="px-4 pt-3.5 pb-4 space-y-3">
-        {/* Teams */}
+      {/* Teams */}
+      <div className="px-4 pt-3.5 pb-2">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0">
             <div
@@ -125,27 +126,39 @@ export function GameCard({ game }: GameCardProps) {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Win probability bar */}
-        <WinProbabilityBar
-          homeWinPct={prediction.home_win_pct}
-          awayWinPct={prediction.away_win_pct}
-          homeLabel={t.predictions.homeWinPct}
-          awayLabel={t.predictions.awayWinPct}
+      {/* Three prediction columns */}
+      <div className="grid grid-cols-3 border-t border-[#1e2733]">
+        <PredictionColumn
+          label={t.predictions.moneyline}
+          stars={prediction.moneyline_stars}
+          pick={moneylinePick}
+          pct={prediction.moneyline_home_pct > prediction.moneyline_away_pct
+            ? prediction.moneyline_home_pct
+            : prediction.moneyline_away_pct}
+          lineRef={null}
         />
-
-        {/* O/U display */}
-        <OverUnderDisplay
-          overUnderLine={prediction.over_under_line}
-          overPct={prediction.over_pct}
-          underPct={prediction.under_pct}
-          predictedWinner={prediction.predicted_winner}
-          homeAbbr={homeTeam.abbreviation}
-          awayAbbr={awayTeam.abbreviation}
+        <PredictionColumn
+          label={t.predictions.spread}
+          stars={prediction.spread_stars}
+          pick={spreadPick}
+          pct={prediction.spread_pct}
+          lineRef={prediction.spread_line !== null ? String(prediction.spread_line) : null}
+        />
+        <PredictionColumn
+          label={t.predictions.overUnder}
+          stars={prediction.over_under_stars}
+          pick={ouPick}
+          pct={(prediction.over_pct ?? 0) >= (prediction.under_pct ?? 0)
+            ? prediction.over_pct
+            : prediction.under_pct}
+          lineRef={ouLineRef}
+          isLast
         />
       </div>
 
-      {/* Card footer — detail link */}
+      {/* Card footer */}
       <Link
         to="/$lang/$sport/$slug"
         params={{ lang, sport: game.sport_id, slug: game.slug }}
