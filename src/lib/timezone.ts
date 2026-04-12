@@ -12,9 +12,7 @@ export function getUserTimezone(): string {
 
 /** Returns today's date in YYYY-MM-DD in the user's local timezone */
 export function localToday(): string {
-  const d = dayjs()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return typeof (d as any).tz === 'function' ? (d as any).tz(getUserTimezone()).format('YYYY-MM-DD') : d.format('YYYY-MM-DD')
+  return dayjs().tz(getUserTimezone()).format('YYYY-MM-DD')
 }
 
 /**
@@ -23,9 +21,7 @@ export function localToday(): string {
  */
 export function toLocalTimeString(utcTimestamp: string | null | undefined): string | null {
   if (!utcTimestamp) return null
-  const d = dayjs(utcTimestamp)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return typeof (d as any).tz === 'function' ? (d as any).tz(getUserTimezone()).format('HH:mm') : d.format('HH:mm')
+  return dayjs(utcTimestamp).tz(getUserTimezone()).format('HH:mm')
 }
 
 /**
@@ -34,9 +30,7 @@ export function toLocalTimeString(utcTimestamp: string | null | undefined): stri
  */
 export function toLocalDateString(utcTimestamp: string | null | undefined): string | null {
   if (!utcTimestamp) return null
-  const d = dayjs(utcTimestamp)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return typeof (d as any).tz === 'function' ? (d as any).tz(getUserTimezone()).format('YYYY-MM-DD') : d.format('YYYY-MM-DD')
+  return dayjs(utcTimestamp).tz(getUserTimezone()).format('YYYY-MM-DD')
 }
 
 /**
@@ -45,7 +39,5 @@ export function toLocalDateString(utcTimestamp: string | null | undefined): stri
  */
 export function toLocalDisplayDateTime(utcTimestamp: string | null | undefined): string | null {
   if (!utcTimestamp) return null
-  const d = dayjs(utcTimestamp)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return typeof (d as any).tz === 'function' ? (d as any).tz(getUserTimezone()).format('MMM D, YYYY · HH:mm') : d.format('MMM D, YYYY · HH:mm')
+  return dayjs(utcTimestamp).tz(getUserTimezone()).format('MMM D, YYYY · HH:mm')
 }
