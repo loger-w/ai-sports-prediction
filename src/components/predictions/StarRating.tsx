@@ -1,0 +1,23 @@
+interface StarRatingProps {
+  stars: number  // 1–5
+  size?: number  // px, default 9
+}
+
+export function StarRating({ stars, size = 9 }: StarRatingProps) {
+  return (
+    <div style={{ display: 'flex', gap: '1px' }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span
+          key={i}
+          data-star={i < stars ? 'filled' : 'empty'}
+          style={{
+            fontSize: `${size}px`,
+            color: i < stars ? '#fbbf24' : '#2d3748',
+          }}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  )
+}
