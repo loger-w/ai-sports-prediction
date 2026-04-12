@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `id, sport_id, slug, status,
          home_team:teams!games_home_team_id_fkey(abbreviation),
          away_team:teams!games_away_team_id_fkey(abbreviation),
-         predictions(id, over_under_line)`,
+         predictions(id, moneyline_pick, over_under_line, spread_line, spread_pick)`,
       )
       .eq('game_date', date)
       .eq('status', 'scheduled')
@@ -132,19 +132,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .eq('id', dbGame.id)
 
         // Resolve each prediction for this game
-        const preds = dbGame.predictions as Array<{ id: string; over_under_line: number | null }>
+        const preds = dbGame.predictions as Array<{
+          id: string
+          moneyline_pick: 'home' | 'away' | null
+          over_under_line: number | null
+          spread_line: number | null
+          spread_pick: 'home' | 'away' | null
+        }>
         for (const pred of preds ?? []) {
           // Determine actual winner
           const actualWinner: 'home' | 'away' = homeScore > awayScore ? 'home' : 'away'
 
-          // Fetch predicted_winner for this prediction
-          const { data: predRow } = await supabase
-            .from('predictions')
-            .select('predicted_winner')
-            .eq('id', pred.id)
-            .single()
-
-          const winnerCorrect = predRow ? predRow.predicted_winner === actualWinner : null
+          const winnerCorrect = pred.moneyline_pick !== null
+            ? pred.moneyline_pick === actualWinner
+            : null
 
           // Over/under resolution
           let ouCorrect: boolean | null = null
@@ -162,6 +163,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
           }
 
+          // Spread resolution
+          let spreadCorrect: boolean | null = null
+          if (pred.spread_line !== null && pred.spread_pick !== null) {
+            const homeCoversSpread = (homeScore - awayScore) > Math.abs(pred.spread_line)
+            const awayCoversSpread = (awayScore - homeScore) > Math.abs(pred.spread_line)
+            const actualCover: 'home' | 'away' =
+              pred.spread_line < 0
+                ? (homeCoversSpread ? 'home' : 'away')
+                : (awayCoversSpread ? 'away' : 'home')
+            spreadCorrect = pred.spread_pick === actualCover
+          }
+
           // Upsert prediction_result (ignore if already resolved)
           await supabase
             .from('prediction_results')
@@ -170,6 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 prediction_id: pred.id,
                 game_id: dbGame.id,
                 winner_correct: winnerCorrect,
+                spread_correct: spreadCorrect,
                 over_under_correct: ouCorrect,
               },
               { onConflict: 'prediction_id', ignoreDuplicates: true },

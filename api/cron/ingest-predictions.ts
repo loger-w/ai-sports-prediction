@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { ClaudeSkillInput, SkillPrediction } from '../../src/types/predictions/index.js'
-import { deriveConfidence, generateSlug, validateInput } from '../../src/lib/predictions/ingest-helpers.js'
+import { generateSlug, validateInput } from '../../src/lib/predictions/ingest-helpers.js'
 
 // ── Supabase client (service role for writes) ───────────────────────────────
 
@@ -104,21 +104,26 @@ async function ingestOne(
     return { slug, status: 'error', error: `Game upsert failed: ${gameErr?.message}` }
   }
 
-  const predictedWinner: 'home' | 'away' = pred.home_win_pct >= pred.away_win_pct ? 'home' : 'away'
-  const confidence = deriveConfidence(pred.home_win_pct)
+  const moneylinePick: 'home' | 'away' =
+    pred.moneyline_home_pct >= pred.moneyline_away_pct ? 'home' : 'away'
 
   // Upsert prediction (one per game per model version)
   const { error: predErr } = await supabase.from('predictions').upsert(
     {
       game_id: game.id,
       model_version: 'v1',
-      home_win_pct: pred.home_win_pct,
-      away_win_pct: pred.away_win_pct,
-      predicted_winner: predictedWinner,
-      confidence_level: confidence,
-      over_under_line: pred.over_under_line,
-      over_pct: pred.over_pct,
-      under_pct: pred.under_pct,
+      moneyline_home_pct: pred.moneyline_home_pct,
+      moneyline_away_pct: pred.moneyline_away_pct,
+      moneyline_pick: moneylinePick,
+      moneyline_stars: pred.moneyline_stars,
+      spread_line: pred.spread_line ?? null,
+      spread_pick: pred.spread_pick ?? null,
+      spread_pct: pred.spread_pct ?? null,
+      spread_stars: pred.spread_stars,
+      over_under_line: pred.over_under_line ?? null,
+      over_pct: pred.over_pct ?? null,
+      under_pct: pred.under_pct ?? null,
+      over_under_stars: pred.over_under_stars,
       explanation_en: pred.explanation_en,
       explanation_zh: pred.explanation_zh,
     },

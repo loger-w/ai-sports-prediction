@@ -1,12 +1,5 @@
 import type { ClaudeSkillInput } from '@/types/predictions/index.js'
 
-export function deriveConfidence(homeWinPct: number): 'high' | 'medium' | 'low' {
-  const edge = Math.abs(homeWinPct - 50)
-  if (edge > 20) return 'high'
-  if (edge > 10) return 'medium'
-  return 'low'
-}
-
 export function generateSlug(homeTeamId: string, awayTeamId: string, date: string): string {
   return `${homeTeamId}-vs-${awayTeamId}-${date}`
 }
@@ -24,16 +17,25 @@ export function validateInput(body: unknown): ClaudeSkillInput {
   for (const [i, p] of b.predictions.entries()) {
     if (!p || typeof p !== 'object') throw new Error(`predictions[${i}] must be an object`)
     const pred = p as Record<string, unknown>
-    const required = ['home_team', 'away_team', 'game_time', 'home_win_pct', 'away_win_pct',
-      'over_under_line', 'over_pct', 'under_pct', 'explanation_en', 'explanation_zh']
+    const required = [
+      'home_team', 'away_team', 'game_time',
+      'moneyline_home_pct', 'moneyline_away_pct', 'moneyline_stars',
+      'spread_stars', 'over_under_stars',
+      'explanation_en', 'explanation_zh',
+    ]
     for (const field of required) {
       if (pred[field] === undefined) throw new Error(`predictions[${i}].${field} is required`)
     }
-    if (typeof pred.home_win_pct !== 'number' || typeof pred.away_win_pct !== 'number')
-      throw new Error(`predictions[${i}] win percentages must be numbers`)
-    const sum = (pred.home_win_pct as number) + (pred.away_win_pct as number)
+    if (typeof pred.moneyline_home_pct !== 'number' || typeof pred.moneyline_away_pct !== 'number')
+      throw new Error(`predictions[${i}] moneyline percentages must be numbers`)
+    const sum = (pred.moneyline_home_pct as number) + (pred.moneyline_away_pct as number)
     if (Math.abs(sum - 100) > 0.01)
-      throw new Error(`predictions[${i}] home_win_pct + away_win_pct must equal 100`)
+      throw new Error(`predictions[${i}] moneyline_home_pct + moneyline_away_pct must equal 100`)
+    for (const starField of ['moneyline_stars', 'spread_stars', 'over_under_stars']) {
+      const val = pred[starField] as number
+      if (!Number.isInteger(val) || val < 1 || val > 5)
+        throw new Error(`predictions[${i}].${starField} must be integer 1–5`)
+    }
   }
 
   return b as unknown as ClaudeSkillInput
