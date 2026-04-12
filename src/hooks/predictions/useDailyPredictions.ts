@@ -6,12 +6,12 @@ import {
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 export function useDailyPredictions() {
-  const { sport, dateRange, confidence, direction } = usePredictionStore()
+  const { sport, dateRange, minStars, direction } = usePredictionStore()
 
   return useQuery({
-    queryKey: ['predictions', sport, dateRange, confidence, direction],
+    queryKey: ['predictions', sport, dateRange, minStars, direction],
     queryFn: () =>
-      fetchDailyPredictions({ sport, dateRange, confidence, direction }),
+      fetchDailyPredictions({ sport, dateRange, minStars, direction }),
   })
 }
 

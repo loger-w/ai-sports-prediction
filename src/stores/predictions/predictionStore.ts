@@ -1,40 +1,35 @@
 import { create } from 'zustand'
+import { localToday } from '@/lib/timezone'
 
 export interface PredictionFilters {
   sport: 'all' | 'nba' | 'mlb'
-  dateRange: 'today' | 'tomorrow' | 'week' | string
-  confidence: ('high' | 'medium' | 'low')[]
+  dateRange: string            // always YYYY-MM-DD
+  minStars: number             // 1–5, where 1 = no filter (show all)
   direction: 'all' | 'home' | 'away'
 }
 
 interface PredictionStore extends PredictionFilters {
   setSport: (sport: PredictionFilters['sport']) => void
-  setDateRange: (range: PredictionFilters['dateRange']) => void
-  toggleConfidence: (level: 'high' | 'medium' | 'low') => void
+  setDateRange: (range: string) => void
+  setMinStars: (stars: number) => void
   setDirection: (dir: PredictionFilters['direction']) => void
   resetFilters: () => void
 }
 
-const DEFAULT_FILTERS: PredictionFilters = {
-  sport: 'all',
-  dateRange: 'today',
-  confidence: [],
-  direction: 'all',
+function getDefaultFilters(): PredictionFilters {
+  return {
+    sport: 'all',
+    dateRange: localToday(),
+    minStars: 1,
+    direction: 'all',
+  }
 }
 
 export const usePredictionStore = create<PredictionStore>((set) => ({
-  ...DEFAULT_FILTERS,
+  ...getDefaultFilters(),
   setSport: (sport) => set({ sport }),
   setDateRange: (dateRange) => set({ dateRange }),
-  toggleConfidence: (level) =>
-    set((state) => {
-      const has = state.confidence.includes(level)
-      return {
-        confidence: has
-          ? state.confidence.filter((c) => c !== level)
-          : [...state.confidence, level],
-      }
-    }),
+  setMinStars: (minStars) => set({ minStars }),
   setDirection: (direction) => set({ direction }),
-  resetFilters: () => set(DEFAULT_FILTERS),
+  resetFilters: () => set(getDefaultFilters()),
 }))
