@@ -15,18 +15,15 @@ import {
 
 type Sport = PredictionFilters['sport']
 type Direction = PredictionFilters['direction']
-type ConfLevel = 'high' | 'medium' | 'low'
 
 export function MobileFilterBar() {
   const { t } = useTranslation()
   const {
     sport,
-    dateRange,
-    confidence,
+    minStars,
     direction,
     setSport,
-    setDateRange,
-    toggleConfidence,
+    setMinStars,
     setDirection,
   } = usePredictionStore()
 
@@ -34,18 +31,6 @@ export function MobileFilterBar() {
     { id: 'all', label: t.filter.allSports },
     { id: 'nba', label: 'NBA' },
     { id: 'mlb', label: 'MLB' },
-  ]
-
-  const dateOptions: { id: string; label: string }[] = [
-    { id: 'today', label: t.filter.today },
-    { id: 'tomorrow', label: t.filter.tomorrow },
-    { id: 'week', label: t.filter.thisWeek },
-  ]
-
-  const confOptions: { id: ConfLevel; label: string; color: string; activeBg: string }[] = [
-    { id: 'high', label: t.filter.high, color: '#00e5a0', activeBg: 'rgba(0,229,160,0.15)' },
-    { id: 'medium', label: t.filter.medium, color: '#fbbf24', activeBg: 'rgba(251,191,36,0.15)' },
-    { id: 'low', label: t.filter.low, color: '#6b7280', activeBg: 'rgba(107,114,128,0.15)' },
   ]
 
   const dirOptions: { id: Direction; label: string }[] = [
@@ -59,12 +44,11 @@ export function MobileFilterBar() {
 
   const activeFiltersCount =
     (sport !== 'all' ? 1 : 0) +
-    (confidence.length > 0 ? 1 : 0) +
+    (minStars > 1 ? 1 : 0) +
     (direction !== 'all' ? 1 : 0)
 
   return (
     <div className="md:hidden border-b border-[#1e2733] bg-[#0d1117] px-3 py-2 space-y-2">
-      {/* Sport pills */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {sports.map((s) => (
           <button
@@ -79,23 +63,6 @@ export function MobileFilterBar() {
             style={{ fontFamily: 'var(--font-barlow-condensed)' }}
           >
             {s.label}
-          </button>
-        ))}
-
-        {/* Date pills */}
-        {dateOptions.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => setDateRange(d.id)}
-            className={cn(
-              PILL,
-              dateRange === d.id
-                ? 'bg-[rgba(0,229,160,0.12)] text-[#00e5a0] border-[rgba(0,229,160,0.3)]'
-                : 'text-[#4a5568] border-[#1e2733] hover:text-[#a0aec0]',
-            )}
-            style={{ fontFamily: 'var(--font-barlow-condensed)' }}
-          >
-            {d.label}
           </button>
         ))}
 
@@ -134,30 +101,30 @@ export function MobileFilterBar() {
               </SheetTitle>
             </SheetHeader>
 
-            {/* Confidence */}
+            {/* Min Stars */}
             <div className="mb-6">
               <div
                 className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3"
                 style={{ fontFamily: 'var(--font-barlow-condensed)' }}
               >
-                {t.filter.confidence}
+                {t.filter.minStars}
               </div>
               <div className="flex gap-2 flex-wrap">
-                {confOptions.map((c) => {
-                  const isActive = confidence.includes(c.id)
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const isActive = minStars === n
                   return (
                     <button
-                      key={c.id}
-                      onClick={() => toggleConfidence(c.id)}
+                      key={n}
+                      onClick={() => setMinStars(n)}
                       className="px-4 py-2 rounded-full text-[12px] font-bold tracking-wide transition-all"
                       style={{
                         fontFamily: 'var(--font-barlow-condensed)',
-                        color: c.color,
-                        background: isActive ? c.activeBg : 'rgba(255,255,255,0.04)',
-                        border: `1px solid ${isActive ? c.color : 'rgba(255,255,255,0.08)'}`,
+                        color: isActive ? '#fbbf24' : '#4a5568',
+                        background: isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${isActive ? '#fbbf24' : 'rgba(255,255,255,0.08)'}`,
                       }}
                     >
-                      {c.label}
+                      {n === 1 ? 'All' : `${n}+ ★`}
                     </button>
                   )
                 })}
