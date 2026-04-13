@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarDots } from '@phosphor-icons/react'
-import { cn } from '@/lib/utils'
 import { localToday } from '@/lib/timezone'
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 import { useDatesWithGames } from '@/hooks/predictions/useDatesWithGames'

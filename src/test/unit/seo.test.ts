@@ -28,8 +28,10 @@ function makeGame(overrides?: Partial<GameWithPrediction>): GameWithPrediction {
     },
     predictions: [{
       id: 'p1',
-      home_win_pct: 60,
-      away_win_pct: 40,
+      moneyline_home_pct: 60,
+      moneyline_away_pct: 40,
+      moneyline_pick: 'home',
+      moneyline_stars: 3,
       predicted_winner: 'home',
       confidence_level: 'medium',
       over_under_line: 215.5,
