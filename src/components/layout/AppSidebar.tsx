@@ -15,7 +15,13 @@ const SIDEBAR_ITEM =
 const SIDEBAR_ITEM_ACTIVE = 'bg-[rgba(0,229,160,0.1)] text-[#00e5a0]'
 
 type Sport = PredictionFilters['sport']
-type Direction = PredictionFilters['direction']
+type SportCategory = 'all' | 'basketball' | 'baseball'
+
+function sportCategory(sport: Sport): SportCategory {
+  if (sport === 'nba') return 'basketball'
+  if (sport === 'mlb') return 'baseball'
+  return 'all'
+}
 
 function CountBadge({ count }: { count: number }) {
   return (
@@ -31,48 +37,81 @@ function SectionDivider() {
 
 export function AppSidebar() {
   const { t } = useTranslation()
-  const { sport, minStars, direction, setSport, setMinStars, setDirection } =
-    usePredictionStore()
+  const { sport, minStars, setSport, setMinStars } = usePredictionStore()
   const { data: counts = {} } = useSportCounts()
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
+  const category = sportCategory(sport)
 
-  const sports: { id: Sport; label: string; emoji: string }[] = [
-    { id: 'all', label: t.filter.allSports, emoji: '🏆' },
-    { id: 'nba', label: 'NBA', emoji: '🏀' },
-    { id: 'mlb', label: 'MLB', emoji: '⚾' },
+  const categories: { id: SportCategory; label: string; emoji: string; onSelect: () => void }[] = [
+    { id: 'all', label: t.filter.allSports, emoji: '🏆', onSelect: () => setSport('all') },
+    { id: 'basketball', label: t.filter.basketball, emoji: '🏀', onSelect: () => setSport('nba') },
+    { id: 'baseball', label: t.filter.baseball, emoji: '⚾', onSelect: () => setSport('mlb') },
   ]
 
-  const dirOptions: { id: Direction; label: string }[] = [
-    { id: 'all', label: t.filter.all },
-    { id: 'home', label: t.filter.home },
-    { id: 'away', label: t.filter.away },
+  const allLeagues: { id: Sport; label: string; category: SportCategory }[] = [
+    { id: 'nba', label: 'NBA', category: 'basketball' },
+    { id: 'mlb', label: 'MLB', category: 'baseball' },
   ]
+
+  const visibleLeagues =
+    category === 'all' ? allLeagues : allLeagues.filter((l) => l.category === category)
+
+  const leagueSectionLabel =
+    category === 'basketball'
+      ? t.filter.basketballLeagues
+      : category === 'baseball'
+        ? t.filter.baseballLeagues
+        : t.filter.leagues
+
+  const categoryCount = (cat: SportCategory): number | undefined => {
+    if (cat === 'all') return totalCount > 0 ? totalCount : undefined
+    if (cat === 'basketball') return counts['nba']
+    if (cat === 'baseball') return counts['mlb']
+  }
 
   return (
     <aside
       className="hidden md:flex flex-col w-[200px] fixed left-0 top-[52px] bottom-0 overflow-y-auto border-r border-[#1e2733]"
       style={{ background: '#0f1419' }}
     >
-      {/* Sport */}
+      {/* Sport Categories */}
       <div className="px-2 pt-4 pb-2">
         <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
           {t.filter.sport}
         </div>
-        {sports.map((s) => (
+        {categories.map((c) => {
+          const count = categoryCount(c.id)
+          return (
+            <button
+              key={c.id}
+              onClick={c.onSelect}
+              className={cn(SIDEBAR_ITEM, category === c.id && SIDEBAR_ITEM_ACTIVE)}
+              style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+            >
+              <span>{c.emoji}</span>
+              {c.label}
+              {count !== undefined && <CountBadge count={count} />}
+            </button>
+          )
+        })}
+      </div>
+
+      <SectionDivider />
+
+      {/* Leagues */}
+      <div className="px-2 py-3">
+        <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
+          {leagueSectionLabel}
+        </div>
+        {visibleLeagues.map((l) => (
           <button
-            key={s.id}
-            onClick={() => setSport(s.id)}
-            className={cn(SIDEBAR_ITEM, sport === s.id && SIDEBAR_ITEM_ACTIVE)}
+            key={l.id}
+            onClick={() => setSport(l.id)}
+            className={cn(SIDEBAR_ITEM, sport === l.id && SIDEBAR_ITEM_ACTIVE)}
             style={{ fontFamily: 'var(--font-barlow-condensed)' }}
           >
-            <span>{s.emoji}</span>
-            {s.label}
-            {s.id !== 'all' && counts[s.id] !== undefined && (
-              <CountBadge count={counts[s.id]} />
-            )}
-            {s.id === 'all' && totalCount > 0 && (
-              <CountBadge count={totalCount} />
-            )}
+            {l.label}
+            {counts[l.id] !== undefined && <CountBadge count={counts[l.id]} />}
           </button>
         ))}
       </div>
@@ -104,25 +143,6 @@ export function AppSidebar() {
             )
           })}
         </div>
-      </div>
-
-      <SectionDivider />
-
-      {/* Direction */}
-      <div className="px-2 py-3">
-        <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
-          {t.filter.direction}
-        </div>
-        {dirOptions.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => setDirection(d.id)}
-            className={cn(SIDEBAR_ITEM, direction === d.id && SIDEBAR_ITEM_ACTIVE)}
-            style={{ fontFamily: 'var(--font-barlow-condensed)' }}
-          >
-            {d.label}
-          </button>
-        ))}
       </div>
     </aside>
   )

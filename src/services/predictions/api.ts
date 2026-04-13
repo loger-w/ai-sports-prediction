@@ -48,7 +48,7 @@ export function resolveDateRange(dateRange: string): { from: string; to: string 
 }
 
 export async function fetchDailyPredictions(
-  filters: { sport: PredictionFilters['sport']; dateRange: string; minStars: number; direction: PredictionFilters['direction'] },
+  filters: { sport: PredictionFilters['sport']; dateRange: string; minStars: number },
 ): Promise<GameWithPrediction[]> {
   const { from, to } = resolveDateRange(filters.dateRange)
 
@@ -92,13 +92,6 @@ export async function fetchDailyPredictions(
           p.spread_stars >= filters.minStars ||
           p.over_under_stars >= filters.minStars,
       ),
-    )
-  }
-
-  // Direction filter
-  if (filters.direction !== 'all') {
-    results = results.filter((g) =>
-      g.predictions.some((p) => p.moneyline_pick === filters.direction),
     )
   }
 

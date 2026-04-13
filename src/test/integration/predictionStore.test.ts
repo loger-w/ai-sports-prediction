@@ -11,7 +11,6 @@ describe('predictionStore', () => {
     expect(state.sport).toBe('all')
     expect(state.dateRange).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(state.minStars).toBe(1)
-    expect(state.direction).toBe('all')
   })
 
   it('setSport updates sport', () => {
@@ -29,22 +28,15 @@ describe('predictionStore', () => {
     expect(usePredictionStore.getState().minStars).toBe(4)
   })
 
-  it('setDirection updates direction', () => {
-    usePredictionStore.getState().setDirection('home')
-    expect(usePredictionStore.getState().direction).toBe('home')
-  })
-
   it('resetFilters resets to initial state', () => {
     usePredictionStore.getState().setSport('nba')
     usePredictionStore.getState().setDateRange('2026-04-20')
     usePredictionStore.getState().setMinStars(4)
-    usePredictionStore.getState().setDirection('home')
     usePredictionStore.getState().resetFilters()
 
     const state = usePredictionStore.getState()
     expect(state.sport).toBe('all')
     expect(state.dateRange).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(state.minStars).toBe(1)
-    expect(state.direction).toBe('all')
   })
 })

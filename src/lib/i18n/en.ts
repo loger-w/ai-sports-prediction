@@ -8,8 +8,9 @@ export type Translations = {
   }
   filter: {
     sport: string; allSports: string; minStars: string
-    confidence: string; direction: string
-    all: string; home: string; away: string; filterButton: string
+    confidence: string; filterButton: string
+    basketball: string; baseball: string
+    leagues: string; basketballLeagues: string; baseballLeagues: string
   }
   predictions: {
     moneyline: string; spread: string; overUnder: string; pass: string
@@ -33,11 +34,12 @@ export const en: Translations = {
     allSports: 'All',
     minStars: 'Min Stars',
     confidence: 'Confidence',
-    direction: 'Prediction',
-    all: 'All',
-    home: 'Home Win',
-    away: 'Away Win',
     filterButton: 'Filters',
+    basketball: 'Basketball',
+    baseball: 'Baseball',
+    leagues: 'Leagues',
+    basketballLeagues: 'Basketball Leagues',
+    baseballLeagues: 'Baseball Leagues',
   },
   predictions: {
     moneyline: 'Moneyline',
