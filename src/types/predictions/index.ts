@@ -34,13 +34,18 @@ export interface Prediction {
   id: string
   game_id: string
   model_version: string
-  home_win_pct: number
-  away_win_pct: number
-  predicted_winner: 'home' | 'away'
-  confidence_level: 'high' | 'medium' | 'low'
+  moneyline_home_pct: number
+  moneyline_away_pct: number
+  moneyline_pick: 'home' | 'away'
+  moneyline_stars: number
+  spread_line: number | null
+  spread_pick: 'home' | 'away' | null
+  spread_pct: number | null
+  spread_stars: number
   over_under_line: number | null
   over_pct: number | null
   under_pct: number | null
+  over_under_stars: number
   explanation_en: string | null
   explanation_zh: string | null
   created_at: string
@@ -51,6 +56,7 @@ export interface PredictionResult {
   prediction_id: string
   game_id: string
   winner_correct: boolean | null
+  spread_correct: boolean | null
   over_under_correct: boolean | null
   resolved_at: string
 }
@@ -58,17 +64,20 @@ export interface PredictionResult {
 // ── Claude Skill JSON input schema ──────────────────────────────────────────
 
 export interface SkillPrediction {
-  /** Team abbreviation e.g. 'LAL' */
   home_team: string
-  /** Team abbreviation e.g. 'BOS' */
   away_team: string
-  /** ISO timestamp e.g. '2026-04-10T02:30:00Z' */
   game_time: string
-  home_win_pct: number
-  away_win_pct: number
-  over_under_line: number
-  over_pct: number
-  under_pct: number
+  moneyline_home_pct: number
+  moneyline_away_pct: number
+  moneyline_stars: number
+  spread_line: number | null
+  spread_pick: 'home' | 'away' | null
+  spread_pct: number | null
+  spread_stars: number
+  over_under_line: number | null
+  over_pct: number | null
+  under_pct: number | null
+  over_under_stars: number
   explanation_en: string
   explanation_zh: string
 }

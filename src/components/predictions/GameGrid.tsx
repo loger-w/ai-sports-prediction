@@ -41,14 +41,9 @@ function CardSkeleton() {
 
 export function GameGrid({ data, isLoading, isError, refetch }: GameGridProps) {
   const { t } = useTranslation()
-  const { resetFilters, sport, confidence, direction, dateRange } =
-    usePredictionStore()
+  const { resetFilters, sport, minStars } = usePredictionStore()
 
-  const hasActiveFilters =
-    sport !== 'all' ||
-    confidence.length > 0 ||
-    direction !== 'all' ||
-    dateRange !== 'today'
+  const hasActiveFilters = sport !== 'all' || minStars > 1
 
   if (isLoading) {
     return (

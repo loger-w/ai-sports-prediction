@@ -1,5 +1,3 @@
-import dayjs from 'dayjs'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
 import {
@@ -17,8 +15,13 @@ const SIDEBAR_ITEM =
 const SIDEBAR_ITEM_ACTIVE = 'bg-[rgba(0,229,160,0.1)] text-[#00e5a0]'
 
 type Sport = PredictionFilters['sport']
-type Direction = PredictionFilters['direction']
-type ConfLevel = 'high' | 'medium' | 'low'
+type SportCategory = 'all' | 'basketball' | 'baseball'
+
+function sportCategory(sport: Sport): SportCategory {
+  if (sport === 'nba') return 'basketball'
+  if (sport === 'mlb') return 'baseball'
+  return 'all'
+}
 
 function CountBadge({ count }: { count: number }) {
   return (
@@ -34,161 +37,112 @@ function SectionDivider() {
 
 export function AppSidebar() {
   const { t } = useTranslation()
-  const { sport, dateRange, confidence, direction, setSport, setDateRange, toggleConfidence, setDirection } =
-    usePredictionStore()
+  const { sport, minStars, setSport, setMinStars } = usePredictionStore()
   const { data: counts = {} } = useSportCounts()
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
+  const category = sportCategory(sport)
 
-  // Month navigation for date display
-  const currentDate = dayjs()
-  const displayMonth =
-    dateRange === 'today' || dateRange === 'tomorrow' || dateRange === 'week'
-      ? currentDate
-      : dayjs(dateRange)
-
-  const sports: { id: Sport; label: string; emoji: string }[] = [
-    { id: 'all', label: t.filter.allSports, emoji: '🏆' },
-    { id: 'nba', label: 'NBA', emoji: '🏀' },
-    { id: 'mlb', label: 'MLB', emoji: '⚾' },
+  const categories: { id: SportCategory; label: string; emoji: string; onSelect: () => void }[] = [
+    { id: 'all', label: t.filter.allSports, emoji: '🏆', onSelect: () => setSport('all') },
+    { id: 'basketball', label: t.filter.basketball, emoji: '🏀', onSelect: () => setSport('nba') },
+    { id: 'baseball', label: t.filter.baseball, emoji: '⚾', onSelect: () => setSport('mlb') },
   ]
 
-  const dateOptions: { id: string; label: string }[] = [
-    { id: 'today', label: t.filter.today },
-    { id: 'tomorrow', label: t.filter.tomorrow },
-    { id: 'week', label: t.filter.thisWeek },
+  const allLeagues: { id: Sport; label: string; category: SportCategory }[] = [
+    { id: 'nba', label: 'NBA', category: 'basketball' },
+    { id: 'mlb', label: 'MLB', category: 'baseball' },
   ]
 
-  const confOptions: { id: ConfLevel; label: string; color: string; activeBg: string }[] = [
-    { id: 'high', label: t.filter.high, color: '#00e5a0', activeBg: 'rgba(0,229,160,0.15)' },
-    { id: 'medium', label: t.filter.medium, color: '#fbbf24', activeBg: 'rgba(251,191,36,0.15)' },
-    { id: 'low', label: t.filter.low, color: '#6b7280', activeBg: 'rgba(107,114,128,0.15)' },
-  ]
+  const visibleLeagues =
+    category === 'all' ? allLeagues : allLeagues.filter((l) => l.category === category)
 
-  const dirOptions: { id: Direction; label: string }[] = [
-    { id: 'all', label: t.filter.all },
-    { id: 'home', label: t.filter.home },
-    { id: 'away', label: t.filter.away },
-  ]
+  const leagueSectionLabel =
+    category === 'basketball'
+      ? t.filter.basketballLeagues
+      : category === 'baseball'
+        ? t.filter.baseballLeagues
+        : t.filter.leagues
+
+  const categoryCount = (cat: SportCategory): number | undefined => {
+    if (cat === 'all') return totalCount > 0 ? totalCount : undefined
+    if (cat === 'basketball') return counts['nba']
+    if (cat === 'baseball') return counts['mlb']
+  }
 
   return (
     <aside
       className="hidden md:flex flex-col w-[200px] fixed left-0 top-[52px] bottom-0 overflow-y-auto border-r border-[#1e2733]"
       style={{ background: '#0f1419' }}
     >
-      {/* Sport */}
+      {/* Sport Categories */}
       <div className="px-2 pt-4 pb-2">
         <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
           {t.filter.sport}
         </div>
-        {sports.map((s) => (
+        {categories.map((c) => {
+          const count = categoryCount(c.id)
+          return (
+            <button
+              key={c.id}
+              onClick={c.onSelect}
+              className={cn(SIDEBAR_ITEM, category === c.id && SIDEBAR_ITEM_ACTIVE)}
+              style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+            >
+              <span>{c.emoji}</span>
+              {c.label}
+              {count !== undefined && <CountBadge count={count} />}
+            </button>
+          )
+        })}
+      </div>
+
+      <SectionDivider />
+
+      {/* Leagues */}
+      <div className="px-2 py-3">
+        <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
+          {leagueSectionLabel}
+        </div>
+        {visibleLeagues.map((l) => (
           <button
-            key={s.id}
-            onClick={() => setSport(s.id)}
-            className={cn(SIDEBAR_ITEM, sport === s.id && SIDEBAR_ITEM_ACTIVE)}
+            key={l.id}
+            onClick={() => setSport(l.id)}
+            className={cn(SIDEBAR_ITEM, sport === l.id && SIDEBAR_ITEM_ACTIVE)}
             style={{ fontFamily: 'var(--font-barlow-condensed)' }}
           >
-            <span>{s.emoji}</span>
-            {s.label}
-            {s.id !== 'all' && counts[s.id] !== undefined && (
-              <CountBadge count={counts[s.id]} />
-            )}
-            {s.id === 'all' && totalCount > 0 && (
-              <CountBadge count={totalCount} />
-            )}
+            {l.label}
+            {counts[l.id] !== undefined && <CountBadge count={counts[l.id]} />}
           </button>
         ))}
       </div>
 
       <SectionDivider />
 
-      {/* Date range */}
+      {/* Min Stars filter */}
       <div className="px-2 py-3">
         <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
-          {t.filter.thisWeek.replace('This ', '')}
-        </div>
-        {/* Month display */}
-        <div className="flex items-center justify-between px-2 mb-2">
-          <button
-            className="w-6 h-6 rounded flex items-center justify-center bg-[#1e2733] text-[#4a5568] hover:text-[#a0aec0] transition-colors"
-            aria-label={t.month.prev}
-          >
-            <ChevronLeft size={12} />
-          </button>
-          <span
-            className="text-[12px] font-bold text-[#a0aec0]"
-            style={{ fontFamily: 'var(--font-barlow-condensed)' }}
-          >
-            {displayMonth.format('MMM YYYY')}
-          </span>
-          <button
-            className="w-6 h-6 rounded flex items-center justify-center bg-[#1e2733] text-[#4a5568] hover:text-[#a0aec0] transition-colors"
-            aria-label={t.month.next}
-          >
-            <ChevronRight size={12} />
-          </button>
-        </div>
-        {dateOptions.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => setDateRange(d.id)}
-            className={cn(SIDEBAR_ITEM, dateRange === d.id && SIDEBAR_ITEM_ACTIVE)}
-            style={{ fontFamily: 'var(--font-barlow-condensed)' }}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
-
-      <SectionDivider />
-
-      {/* Confidence */}
-      <div className="px-2 py-3">
-        <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
-          {t.filter.confidence}
+          {t.filter.minStars}
         </div>
         <div className="flex flex-wrap gap-1.5 px-2">
-          {confOptions.map((c) => {
-            const isActive = confidence.includes(c.id)
+          {[1, 2, 3, 4, 5].map((n) => {
+            const isActive = minStars === n
             return (
               <button
-                key={c.id}
-                onClick={() => toggleConfidence(c.id)}
+                key={n}
+                onClick={() => setMinStars(n)}
                 className="px-2 py-1 rounded text-[11px] font-bold tracking-wide transition-all"
                 style={{
                   fontFamily: 'var(--font-barlow-condensed)',
-                  color: c.color,
-                  background: isActive ? c.activeBg : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${isActive ? c.color : 'transparent'}`,
+                  color: isActive ? '#fbbf24' : '#4a5568',
+                  background: isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${isActive ? '#fbbf24' : 'transparent'}`,
                 }}
               >
-                {c.label}
+                {n === 1 ? 'All' : `${n}+ ★`}
               </button>
             )
           })}
         </div>
-      </div>
-
-      <SectionDivider />
-
-      {/* Direction */}
-      <div className="px-2 py-3">
-        <div className={SECTION_TITLE} style={{ fontFamily: 'var(--font-barlow-condensed)' }}>
-          {t.filter.direction}
-        </div>
-        {dirOptions.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => setDirection(d.id)}
-            className={cn(
-              SIDEBAR_ITEM,
-              direction === d.id && SIDEBAR_ITEM_ACTIVE,
-              d.id === 'home' && direction === d.id && '!text-[#60a5fa] !bg-[rgba(96,165,250,0.08)]',
-            )}
-            style={{ fontFamily: 'var(--font-barlow-condensed)' }}
-          >
-            {d.label}
-          </button>
-        ))}
       </div>
     </aside>
   )

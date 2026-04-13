@@ -6,12 +6,11 @@ describe('predictionStore', () => {
     usePredictionStore.getState().resetFilters()
   })
 
-  it('has correct initial state', () => {
+  it('has correct initial state with localToday dateRange and minStars 1', () => {
     const state = usePredictionStore.getState()
     expect(state.sport).toBe('all')
-    expect(state.dateRange).toBe('today')
-    expect(state.confidence).toEqual([])
-    expect(state.direction).toBe('all')
+    expect(state.dateRange).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(state.minStars).toBe(1)
   })
 
   it('setSport updates sport', () => {
@@ -19,44 +18,25 @@ describe('predictionStore', () => {
     expect(usePredictionStore.getState().sport).toBe('nba')
   })
 
-  it('setDateRange updates dateRange', () => {
-    usePredictionStore.getState().setDateRange('week')
-    expect(usePredictionStore.getState().dateRange).toBe('week')
+  it('setDateRange accepts YYYY-MM-DD strings', () => {
+    usePredictionStore.getState().setDateRange('2026-04-20')
+    expect(usePredictionStore.getState().dateRange).toBe('2026-04-20')
   })
 
-  it('toggleConfidence adds a level', () => {
-    usePredictionStore.getState().toggleConfidence('high')
-    expect(usePredictionStore.getState().confidence).toEqual(['high'])
-  })
-
-  it('toggleConfidence removes a level when toggled again', () => {
-    usePredictionStore.getState().toggleConfidence('high')
-    usePredictionStore.getState().toggleConfidence('high')
-    expect(usePredictionStore.getState().confidence).toEqual([])
-  })
-
-  it('toggleConfidence accumulates multiple levels', () => {
-    usePredictionStore.getState().toggleConfidence('high')
-    usePredictionStore.getState().toggleConfidence('medium')
-    expect(usePredictionStore.getState().confidence).toEqual(['high', 'medium'])
-  })
-
-  it('setDirection updates direction', () => {
-    usePredictionStore.getState().setDirection('home')
-    expect(usePredictionStore.getState().direction).toBe('home')
+  it('setMinStars updates minStars', () => {
+    usePredictionStore.getState().setMinStars(4)
+    expect(usePredictionStore.getState().minStars).toBe(4)
   })
 
   it('resetFilters resets to initial state', () => {
     usePredictionStore.getState().setSport('nba')
-    usePredictionStore.getState().setDateRange('week')
-    usePredictionStore.getState().toggleConfidence('high')
-    usePredictionStore.getState().setDirection('home')
+    usePredictionStore.getState().setDateRange('2026-04-20')
+    usePredictionStore.getState().setMinStars(4)
     usePredictionStore.getState().resetFilters()
 
     const state = usePredictionStore.getState()
     expect(state.sport).toBe('all')
-    expect(state.dateRange).toBe('today')
-    expect(state.confidence).toEqual([])
-    expect(state.direction).toBe('all')
+    expect(state.dateRange).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(state.minStars).toBe(1)
   })
 })

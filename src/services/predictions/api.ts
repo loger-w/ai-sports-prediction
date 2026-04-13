@@ -1,4 +1,3 @@
-import dayjs from 'dayjs'
 import { supabase } from '@/lib/supabase'
 import type { PredictionFilters } from '@/stores/predictions/predictionStore'
 
@@ -27,39 +26,29 @@ export interface GameWithPrediction {
   }
   predictions: Array<{
     id: string
-    home_win_pct: number
-    away_win_pct: number
-    predicted_winner: 'home' | 'away'
-    confidence_level: 'high' | 'medium' | 'low'
+    moneyline_home_pct: number
+    moneyline_away_pct: number
+    moneyline_pick: 'home' | 'away'
+    moneyline_stars: number
+    spread_line: number | null
+    spread_pick: 'home' | 'away' | null
+    spread_pct: number | null
+    spread_stars: number
     over_under_line: number | null
     over_pct: number | null
     under_pct: number | null
+    over_under_stars: number
     explanation_en: string | null
     explanation_zh: string | null
   }>
 }
 
 export function resolveDateRange(dateRange: string): { from: string; to: string } {
-  const today = dayjs()
-  switch (dateRange) {
-    case 'today':
-      return { from: today.format('YYYY-MM-DD'), to: today.format('YYYY-MM-DD') }
-    case 'tomorrow': {
-      const tomorrow = today.add(1, 'day').format('YYYY-MM-DD')
-      return { from: tomorrow, to: tomorrow }
-    }
-    case 'week':
-      return {
-        from: today.format('YYYY-MM-DD'),
-        to: today.endOf('week').format('YYYY-MM-DD'),
-      }
-    default:
-      return { from: dateRange, to: dateRange }
-  }
+  return { from: dateRange, to: dateRange }
 }
 
 export async function fetchDailyPredictions(
-  filters: Pick<PredictionFilters, 'sport' | 'dateRange' | 'confidence' | 'direction'>,
+  filters: { sport: PredictionFilters['sport']; dateRange: string; minStars: number },
 ): Promise<GameWithPrediction[]> {
   const { from, to } = resolveDateRange(filters.dateRange)
 
@@ -70,7 +59,10 @@ export async function fetchDailyPredictions(
       id, sport_id, game_date, game_time, slug, status, home_score, away_score,
       home_team:teams!games_home_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
       away_team:teams!games_away_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
-      predictions(id, home_win_pct, away_win_pct, predicted_winner, confidence_level, over_under_line, over_pct, under_pct, explanation_en, explanation_zh)
+      predictions(id, moneyline_home_pct, moneyline_away_pct, moneyline_pick, moneyline_stars,
+        spread_line, spread_pick, spread_pct, spread_stars,
+        over_under_line, over_pct, under_pct, over_under_stars,
+        explanation_en, explanation_zh)
     `,
     )
     .gte('game_date', from)
@@ -91,17 +83,15 @@ export async function fetchDailyPredictions(
   // Only show games that have predictions
   results = results.filter((g) => g.predictions && g.predictions.length > 0)
 
-  // Confidence filter (empty array = no filter / show all)
-  if (filters.confidence.length > 0) {
+  // minStars filter: show games where at least one dimension has stars >= minStars
+  if (filters.minStars > 1) {
     results = results.filter((g) =>
-      g.predictions.some((p) => filters.confidence.includes(p.confidence_level)),
-    )
-  }
-
-  // Direction filter
-  if (filters.direction !== 'all') {
-    results = results.filter((g) =>
-      g.predictions.some((p) => p.predicted_winner === filters.direction),
+      g.predictions.some(
+        (p) =>
+          p.moneyline_stars >= filters.minStars ||
+          p.spread_stars >= filters.minStars ||
+          p.over_under_stars >= filters.minStars,
+      ),
     )
   }
 
@@ -232,7 +222,10 @@ export async function fetchGameDetail(slug: string): Promise<GameWithPrediction 
       id, sport_id, game_date, game_time, slug, status, home_score, away_score,
       home_team:teams!games_home_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
       away_team:teams!games_away_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
-      predictions(id, home_win_pct, away_win_pct, predicted_winner, confidence_level, over_under_line, over_pct, under_pct, explanation_en, explanation_zh)
+      predictions(id, moneyline_home_pct, moneyline_away_pct, moneyline_pick, moneyline_stars,
+        spread_line, spread_pick, spread_pct, spread_stars,
+        over_under_line, over_pct, under_pct, over_under_stars,
+        explanation_en, explanation_zh)
     `,
     )
     .eq('slug', slug)
@@ -260,4 +253,26 @@ export async function fetchSportCounts(
     counts[row.sport_id] = (counts[row.sport_id] ?? 0) + 1
   }
   return counts
+}
+
+/**
+ * Returns an array of YYYY-MM-DD date strings in [from, to] that have
+ * at least one game with a prediction.
+ */
+export async function fetchDatesWithGames(from: string, to: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('games')
+    .select('game_date, predictions(id)')
+    .gte('game_date', from)
+    .lte('game_date', to)
+
+  if (error || !data) return []
+
+  const dates = new Set<string>()
+  for (const row of data as unknown as Array<{ game_date: string; predictions: Array<{ id: string }> }>) {
+    if (row.predictions && row.predictions.length > 0) {
+      dates.add(row.game_date)
+    }
+  }
+  return [...dates]
 }

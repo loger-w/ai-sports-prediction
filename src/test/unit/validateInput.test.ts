@@ -6,11 +6,11 @@ function validPrediction(overrides?: Record<string, unknown>) {
     home_team: 'LAL',
     away_team: 'BOS',
     game_time: '2026-04-12T02:30:00Z',
-    home_win_pct: 60,
-    away_win_pct: 40,
-    over_under_line: 215.5,
-    over_pct: 55,
-    under_pct: 45,
+    moneyline_home_pct: 60,
+    moneyline_away_pct: 40,
+    moneyline_stars: 4,
+    spread_stars: 3,
+    over_under_stars: 2,
     explanation_en: 'Lakers favored',
     explanation_zh: '湖人被看好',
     ...overrides,
@@ -57,18 +57,39 @@ describe('validateInput', () => {
     expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('predictions[0].home_team is required')
   })
 
-  it('throws when win percentages are not numbers', () => {
-    const pred = validPrediction({ home_win_pct: '60' })
-    expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('win percentages must be numbers')
+  it('throws when moneyline percentages are not numbers', () => {
+    const pred = validPrediction({ moneyline_home_pct: '60' })
+    expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('moneyline percentages must be numbers')
   })
 
-  it('throws when win percentages do not sum to 100', () => {
-    const pred = validPrediction({ home_win_pct: 60, away_win_pct: 30 })
+  it('throws when moneyline percentages do not sum to 100', () => {
+    const pred = validPrediction({ moneyline_home_pct: 60, moneyline_away_pct: 30 })
     expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('must equal 100')
   })
 
-  it('passes when win percentages sum is within ±0.01 of 100', () => {
-    const pred = validPrediction({ home_win_pct: 60.005, away_win_pct: 39.999 })
+  it('passes when moneyline percentages sum is within ±0.01 of 100', () => {
+    const pred = validPrediction({ moneyline_home_pct: 60.005, moneyline_away_pct: 39.999 })
     expect(() => validateInput(validInput({ predictions: [pred] }))).not.toThrow()
+  })
+
+  it('throws when moneyline_stars is out of range', () => {
+    const pred = validPrediction({ moneyline_stars: 6 })
+    expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('moneyline_stars must be integer 1–5')
+  })
+
+  it('throws when spread_stars is not an integer', () => {
+    const pred = validPrediction({ spread_stars: 2.5 })
+    expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('spread_stars must be integer 1–5')
+  })
+
+  it('throws when over_under_stars is zero', () => {
+    const pred = validPrediction({ over_under_stars: 0 })
+    expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('over_under_stars must be integer 1–5')
+  })
+
+  it('throws for missing moneyline_stars', () => {
+    const pred = validPrediction()
+    delete (pred as Record<string, unknown>).moneyline_stars
+    expect(() => validateInput(validInput({ predictions: [pred] }))).toThrow('predictions[0].moneyline_stars is required')
   })
 })

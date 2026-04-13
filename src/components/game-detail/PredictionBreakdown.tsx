@@ -1,22 +1,9 @@
 import { useTranslation } from '@/lib/i18n'
-import { WinProbabilityBar } from '@/components/predictions/WinProbabilityBar'
-import { OverUnderDisplay } from '@/components/predictions/OverUnderDisplay'
+import { PredictionColumn } from '@/components/predictions/PredictionColumn'
 import type { GameWithPrediction } from '@/services/predictions/api'
 
 interface PredictionBreakdownProps {
   game: GameWithPrediction
-}
-
-const CONF_COLOR: Record<string, string> = {
-  high: '#00e5a0',
-  medium: '#fbbf24',
-  low: '#6b7280',
-}
-
-const CONF_BG: Record<string, string> = {
-  high: 'rgba(0,229,160,0.12)',
-  medium: 'rgba(251,191,36,0.10)',
-  low: 'rgba(107,114,128,0.12)',
 }
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
@@ -27,65 +14,37 @@ export function PredictionBreakdown({ game }: PredictionBreakdownProps) {
 
   if (!prediction) return null
 
-  const confLabel =
-    prediction.confidence_level === 'high'
-      ? t.predictions.confidence.high
-      : prediction.confidence_level === 'medium'
-        ? t.predictions.confidence.medium
-        : t.predictions.confidence.low
+  const homeTeam = game.home_team
+  const awayTeam = game.away_team
+
+  // Moneyline pick text
+  const moneylinePick =
+    prediction.moneyline_pick === 'home'
+      ? homeTeam.abbreviation
+      : awayTeam.abbreviation
+
+  // Spread pick text
+  let spreadPick = ''
+  if (prediction.spread_line !== null && prediction.spread_pick !== null) {
+    const abbr =
+      prediction.spread_pick === 'home' ? homeTeam.abbreviation : awayTeam.abbreviation
+    const line = prediction.spread_line
+    spreadPick = `${abbr} ${line > 0 ? '+' : ''}${line}`
+  }
+
+  // O/U pick text
+  let ouPick = ''
+  let ouLineRef: string | null = null
+  if (prediction.over_under_line !== null) {
+    ouLineRef = String(prediction.over_under_line)
+    const isOver = (prediction.over_pct ?? 0) >= (prediction.under_pct ?? 0)
+    ouPick = `${isOver ? 'O' : 'U'} ${prediction.over_under_line}`
+  }
 
   const explanation = lang === 'zh' ? prediction.explanation_zh : prediction.explanation_en
 
   return (
     <div className="space-y-4">
-      {/* Win probability */}
-      <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] px-5 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <span
-            className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]"
-            style={FONT}
-          >
-            {t.gameDetail.winProbability}
-          </span>
-          <span
-            className="text-[10px] font-bold tracking-[0.12em] px-2 py-0.5 rounded"
-            style={{
-              ...FONT,
-              color: CONF_COLOR[prediction.confidence_level] ?? CONF_COLOR.low,
-              background: CONF_BG[prediction.confidence_level] ?? CONF_BG.low,
-            }}
-          >
-            {confLabel}
-          </span>
-        </div>
-        <WinProbabilityBar
-          homeWinPct={prediction.home_win_pct}
-          awayWinPct={prediction.away_win_pct}
-          homeLabel={t.predictions.homeWinPct}
-          awayLabel={t.predictions.awayWinPct}
-        />
-      </div>
-
-      {/* Over / Under */}
-      <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] px-5 py-4">
-        <div className="mb-4">
-          <span
-            className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]"
-            style={FONT}
-          >
-            {t.gameDetail.overUnder}
-          </span>
-        </div>
-        <OverUnderDisplay
-          overUnderLine={prediction.over_under_line}
-          overPct={prediction.over_pct}
-          underPct={prediction.under_pct}
-          predictedWinner={prediction.predicted_winner}
-          homeAbbr={game.home_team.abbreviation}
-          awayAbbr={game.away_team.abbreviation}
-        />
-      </div>
-
       {/* AI Explanation */}
       {explanation ? (
         <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] px-5 py-4">
@@ -97,14 +56,57 @@ export function PredictionBreakdown({ game }: PredictionBreakdownProps) {
               {t.gameDetail.explanation}
             </span>
           </div>
-          <p
-            className="text-[13px] text-[#a0aec0] leading-relaxed"
-            style={FONT}
-          >
+          <p className="text-[13px] text-[#a0aec0] leading-relaxed" style={FONT}>
             {explanation}
           </p>
         </div>
       ) : null}
+
+      {/* Three prediction dimensions */}
+      <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#1e2733]">
+          <span
+            className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]"
+            style={FONT}
+          >
+            {t.gameDetail.aiPick}
+          </span>
+        </div>
+        <div className="grid grid-cols-3">
+          <PredictionColumn
+            label={t.predictions.moneyline}
+            stars={prediction.moneyline_stars}
+            pick={moneylinePick}
+            pct={
+              prediction.moneyline_home_pct > prediction.moneyline_away_pct
+                ? prediction.moneyline_home_pct
+                : prediction.moneyline_away_pct
+            }
+            lineRef={null}
+          />
+          <PredictionColumn
+            label={t.predictions.spread}
+            stars={prediction.spread_stars}
+            pick={spreadPick}
+            pct={prediction.spread_pct}
+            lineRef={
+              prediction.spread_line !== null ? String(prediction.spread_line) : null
+            }
+          />
+          <PredictionColumn
+            label={t.predictions.overUnder}
+            stars={prediction.over_under_stars}
+            pick={ouPick}
+            pct={
+              (prediction.over_pct ?? 0) >= (prediction.under_pct ?? 0)
+                ? prediction.over_pct
+                : prediction.under_pct
+            }
+            lineRef={ouLineRef}
+            isLast
+          />
+        </div>
+      </div>
     </div>
   )
 }
