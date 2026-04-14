@@ -43,6 +43,7 @@ export interface Prediction {
   spread_pct: number | null
   spread_stars: number
   over_under_line: number | null
+  ou_rec: 'over' | 'under' | null
   over_pct: number | null
   under_pct: number | null
   over_under_stars: number
@@ -58,38 +59,85 @@ export interface PredictionResult {
   winner_correct: boolean | null
   spread_correct: boolean | null
   over_under_correct: boolean | null
+  ml_result: 'WIN' | 'LOSS' | 'PUSH' | 'PASS' | null
+  ou_result: 'WIN' | 'LOSS' | 'PUSH' | 'PASS' | null
+  run_line_result: 'WIN' | 'LOSS' | 'PUSH' | 'PASS' | null
   resolved_at: string
 }
 
-// ── Claude Skill JSON input schema ──────────────────────────────────────────
+// ── Shared result type ───────────────────────────────────────────────────────
 
-export interface SkillPrediction {
-  home_team: string
+export type MarketResult = 'WIN' | 'LOSS' | 'PUSH' | 'PASS'
+
+// ── Manual Ingest API payload types ─────────────────────────────────────────
+
+export interface ScheduleGame {
+  home_team: string      // MLB abbreviation e.g. "LAD"
   away_team: string
-  game_time: string
-  moneyline_home_pct: number
-  moneyline_away_pct: number
-  moneyline_stars: number
-  spread_line: number | null
-  spread_pick: 'home' | 'away' | null
-  spread_pct: number | null
-  spread_stars: number
-  over_under_line: number | null
-  over_pct: number | null
-  under_pct: number | null
-  over_under_stars: number
-  explanation_en: string
-  explanation_zh: string
+  game_time: string      // ISO 8601 UTC
 }
 
-export interface ClaudeSkillInput {
-  /** 'YYYY-MM-DD' */
-  date: string
-  sport: 'nba' | 'mlb'
-  predictions: SkillPrediction[]
+export interface SchedulePayload {
+  date: string           // YYYY-MM-DD
+  games: ScheduleGame[]
 }
 
-// ── ESPN API response types ─────────────────────────────────────────────────
+export interface PredictionItem {
+  // natural key
+  home_team:          string
+  away_team:          string
+  game_time:          string
+  // moneyline (null = PASS)
+  predicted_winner:   'home' | 'away' | null
+  predicted_home_pct: number | null
+  ml_stars:           number | null       // 1–5
+  // over/under (null = PASS)
+  ou_line:            number | null
+  ou_rec:             'over' | 'under' | null
+  ou_stars:           number | null       // 1–5
+  // run line (null = PASS)
+  run_line:           number | null
+  run_line_rec:       'home' | 'away' | null
+  run_line_stars:     number | null       // 1–5
+}
+
+export interface PredictionsPayload {
+  date:        string
+  predictions: PredictionItem[]
+}
+
+export interface ResultItem {
+  home_team:         string
+  away_team:         string
+  game_time:         string
+  actual_home_score: number
+  actual_away_score: number
+  ml_result:         MarketResult | null
+  ou_result:         MarketResult | null
+  run_line_result:   MarketResult | null
+}
+
+export interface ResultsPayload {
+  date:    string
+  results: ResultItem[]
+}
+
+// ── Ingest API response ──────────────────────────────────────────────────────
+
+export interface IngestItemResult {
+  slug:   string
+  status: 'upserted' | 'error' | 'no_prediction'
+  error?: string
+}
+
+export interface IngestResponse {
+  total:    number
+  upserted: number
+  errors:   number
+  results:  IngestItemResult[]
+}
+
+// ── ESPN API response types (used by old cron — kept for reference) ──────────
 
 export interface ESPNCompetitor {
   homeAway: 'home' | 'away'
