@@ -97,7 +97,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           model_version: 'v1',
           moneyline_pick: item.predicted_winner,
           moneyline_home_pct: item.predicted_home_pct,
-          moneyline_away_pct: Math.round((100 - item.predicted_home_pct) * 10) / 10,
+          moneyline_away_pct: item.predicted_home_pct != null
+            ? Math.round((100 - item.predicted_home_pct) * 10) / 10
+            : 50,
           moneyline_stars: item.ml_stars ?? 3,
           over_under_line: item.ou_line,
           ou_rec: item.ou_rec,
