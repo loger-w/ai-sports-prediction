@@ -4,7 +4,7 @@ const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
 
 interface PredictionColumnProps {
   label: string
-  stars: number        // 1–5
+  stars: number        // 0–5 (0 = PASS)
   pick: string         // formatted pick text, e.g. "LAL", "LAL -3.5", "O 218.5"
   pct: number | null   // confidence %, shown when stars >= 2
   lineRef: string | null  // grey reference shown in PASS state (e.g. "218.5", "-3.5")
@@ -19,7 +19,7 @@ export function PredictionColumn({
   lineRef,
   isLast = false,
 }: PredictionColumnProps) {
-  const isPass = stars <= 1
+  const isPass = stars === 0
 
   return (
     <div

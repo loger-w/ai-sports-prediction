@@ -59,7 +59,7 @@ function makeGame(overrides?: Partial<GameWithPrediction['predictions'][0]>): Ga
       over_under_line: 218.5,
       over_pct: 54.2,
       under_pct: 45.8,
-      over_under_stars: 1,
+      over_under_stars: 0,
       explanation_en: 'Lakers favored',
       explanation_zh: '湖人被看好',
       ...overrides,
@@ -79,7 +79,7 @@ describe('GameCard', () => {
     expect(screen.getByText('62.3%')).toBeInTheDocument()
   })
 
-  it('shows PASS for over_under when stars === 1', () => {
+  it('shows PASS for over_under when stars === 0', () => {
     render(<GameCard game={makeGame()} />)
     expect(screen.getByText('PASS')).toBeInTheDocument()
     expect(screen.getByText('218.5')).toBeInTheDocument()

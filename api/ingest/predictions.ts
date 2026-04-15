@@ -100,13 +100,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           moneyline_away_pct: item.predicted_home_pct != null
             ? Math.round((100 - item.predicted_home_pct) * 10) / 10
             : 50,
-          moneyline_stars: item.ml_stars ?? 3,
+          moneyline_stars: item.ml_stars ?? 0,
           over_under_line: item.ou_line,
           ou_rec: item.ou_rec,
-          over_under_stars: item.ou_stars ?? 3,
+          over_under_stars: item.ou_stars ?? 0,
           spread_line: item.run_line,
           spread_pick: item.run_line_rec,
-          spread_stars: item.run_line_stars ?? 3,
+          spread_stars: item.run_line_stars ?? 0,
         },
         { onConflict: 'game_id,model_version' },
       )

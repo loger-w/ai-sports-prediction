@@ -19,11 +19,11 @@ describe('PredictionColumn', () => {
     expect(screen.queryByText('PASS')).toBeNull()
   })
 
-  it('shows PASS and lineRef when stars === 1', () => {
+  it('shows PASS and lineRef when stars === 0', () => {
     render(
       <PredictionColumn
         label="O/U"
-        stars={1}
+        stars={0}
         pick="O 218.5"
         pct={51}
         lineRef="218.5"
@@ -39,7 +39,7 @@ describe('PredictionColumn', () => {
     render(
       <PredictionColumn
         label="Moneyline"
-        stars={1}
+        stars={0}
         pick="LAL"
         pct={52}
         lineRef={null}
@@ -47,5 +47,20 @@ describe('PredictionColumn', () => {
     )
     expect(screen.getByText('PASS')).toBeInTheDocument()
     expect(screen.queryByText('52%')).toBeNull()
+  })
+
+  it('shows pick normally when stars === 1 (not PASS)', () => {
+    render(
+      <PredictionColumn
+        label="Moneyline"
+        stars={1}
+        pick="LAL"
+        pct={52}
+        lineRef={null}
+      />
+    )
+    expect(screen.getByText('LAL')).toBeInTheDocument()
+    expect(screen.getByText('52%')).toBeInTheDocument()
+    expect(screen.queryByText('PASS')).toBeNull()
   })
 })
