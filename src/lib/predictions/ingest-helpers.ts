@@ -93,6 +93,22 @@ export function validatePredictionsPayload(body: unknown): PredictionsPayload {
       if (!isStars(pred.run_line_stars))
         throw new Error(`predictions[${i}].run_line_stars must be integer 1–5`)
     }
+
+    // Optional analysis validation (lightweight — deep validation is done by assemble_analysis.py)
+    if (pred.analysis !== undefined && pred.analysis !== null) {
+      const a = pred.analysis as Record<string, unknown>
+      if (a.schema_version !== '1.0')
+        throw new Error(`predictions[${i}].analysis.schema_version must be '1.0'`)
+      const requiredKeys = [
+        'meta', 'recent_form', 'pitching_matchup', 'lineup_analysis',
+        'bullpen_and_injuries', 'environment', 'signal_adjustments',
+        'win_probability', 'score_prediction', 'betting_recommendations',
+      ]
+      for (const key of requiredKeys) {
+        if (!(key in a))
+          throw new Error(`predictions[${i}].analysis.${key} is required`)
+      }
+    }
   }
 
   return b as unknown as PredictionsPayload

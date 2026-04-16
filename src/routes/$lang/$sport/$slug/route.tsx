@@ -5,6 +5,7 @@ import { useGameDetail } from '@/hooks/predictions/useGameDetail'
 import { buildSportsEventSchema, buildPageTitle } from '@/lib/predictions/seo'
 import { GameDetailHeader } from '@/components/game-detail/GameDetailHeader'
 import { PredictionBreakdown } from '@/components/game-detail/PredictionBreakdown'
+import { AnalysisSection } from '@/components/game-detail/AnalysisSection'
 import { SchemaMarkup } from '@/components/game-detail/SchemaMarkup'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -82,6 +83,7 @@ function GameDetailPage() {
       {schema ? <SchemaMarkup schema={schema} /> : null}
       <GameDetailHeader game={game} />
       <PredictionBreakdown game={game} />
+      <AnalysisSection analysis={game.predictions[0]?.analysis ?? null} />
     </div>
   )
 }

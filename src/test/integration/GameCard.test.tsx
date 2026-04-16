@@ -62,6 +62,7 @@ function makeGame(overrides?: Partial<GameWithPrediction['predictions'][0]>): Ga
       over_under_stars: 0,
       explanation_en: 'Lakers favored',
       explanation_zh: '湖人被看好',
+      analysis: null,
       ...overrides,
     }],
   }

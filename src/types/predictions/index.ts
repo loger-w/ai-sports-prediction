@@ -1,3 +1,7 @@
+// ── Analysis schema (v1.0) ──────────────────────────────────────────────────
+export type { GameAnalysis } from './analysis'
+export * from './analysis'
+
 // ── Database row types ──────────────────────────────────────────────────────
 
 export interface Sport {
@@ -49,6 +53,7 @@ export interface Prediction {
   over_under_stars: number
   explanation_en: string | null
   explanation_zh: string | null
+  analysis: import('./analysis').GameAnalysis | null
   created_at: string
 }
 
@@ -99,6 +104,8 @@ export interface PredictionItem {
   run_line:           number | null
   run_line_rec:       'home' | 'away' | null
   run_line_stars:     number | null       // 1–5
+  // structured analysis (optional)
+  analysis?:          import('./analysis').GameAnalysis | null
 }
 
 export interface PredictionsPayload {

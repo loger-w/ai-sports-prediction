@@ -53,6 +53,7 @@ function makeGame(id: string): GameWithPrediction {
       over_under_stars: 1,
       explanation_en: 'Test',
       explanation_zh: '測試',
+      analysis: null,
     }],
   }
 }
