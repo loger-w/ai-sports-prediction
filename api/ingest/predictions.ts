@@ -107,6 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           spread_line: item.run_line,
           spread_pick: item.run_line_rec,
           spread_stars: item.run_line_stars ?? 0,
+          ...(item.analysis ? { analysis: item.analysis } : {}),
         },
         { onConflict: 'game_id,model_version' },
       )

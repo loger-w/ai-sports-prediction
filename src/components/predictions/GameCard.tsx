@@ -2,7 +2,7 @@ import dayjs from 'dayjs'
 import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
-import { toLocalTimeString } from '@/lib/timezone'
+import { toLocalDateString, toLocalTimeString } from '@/lib/timezone'
 import type { GameWithPrediction } from '@/services/predictions/api'
 import { PredictionColumn } from './PredictionColumn'
 
@@ -25,7 +25,7 @@ export function GameCard({ game }: GameCardProps) {
 
   const localTime = toLocalTimeString(game.game_time)
   const gameDate = game.game_time
-    ? dayjs(game.game_time).format('MMM D')
+    ? dayjs(toLocalDateString(game.game_time)).format('MMM D')
     : game.game_date
 
   // Moneyline pick text
