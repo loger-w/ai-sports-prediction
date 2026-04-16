@@ -27,7 +27,7 @@ export function GameDetailHeader({ game }: GameDetailHeaderProps) {
         <Link
           to="/$lang/predictions"
           params={{ lang }}
-          className="text-[11px] font-bold tracking-wide text-[#4a5568] hover:text-[#a0aec0] transition-colors"
+          className="text-[14px] font-bold tracking-wide text-[#4a5568] hover:text-[#a0aec0] transition-colors"
           style={FONT}
         >
           {t.gameDetail.back}
@@ -35,14 +35,14 @@ export function GameDetailHeader({ game }: GameDetailHeaderProps) {
 
         <div className="flex items-center gap-2">
           <span
-            className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#00e5a0]"
+            className="text-[13px] font-bold tracking-[0.18em] uppercase text-[#00e5a0]"
             style={FONT}
           >
             {game.sport_id.toUpperCase()}
           </span>
           <span className="text-[#1e2733]">·</span>
           <span
-            className="text-[10px] font-bold tracking-wide uppercase"
+            className="text-[13px] font-bold tracking-wide uppercase"
             style={{
               ...FONT,
               color: isFinal ? '#fbbf24' : '#3a4a5a',
@@ -53,7 +53,7 @@ export function GameDetailHeader({ game }: GameDetailHeaderProps) {
           {gameTime && (
             <>
               <span className="text-[#1e2733]">·</span>
-              <span className="text-[11px] text-[#3a4a5a]" style={FONT}>
+              <span className="text-[13px] text-[#3a4a5a]" style={FONT}>
                 {gameTime}
               </span>
             </>
@@ -66,7 +66,7 @@ export function GameDetailHeader({ game }: GameDetailHeaderProps) {
         {/* Away team */}
         <div>
           <div
-            className="text-[11px] uppercase tracking-widest text-[#3a4a5a] mb-1"
+            className="text-[13px] uppercase tracking-widest text-[#3a4a5a] mb-1"
             style={FONT}
           >
             {awayName}
@@ -104,7 +104,7 @@ export function GameDetailHeader({ game }: GameDetailHeaderProps) {
         {/* Home team */}
         <div className="text-right">
           <div
-            className="text-[11px] uppercase tracking-widest text-[#3a4a5a] mb-1"
+            className="text-[13px] uppercase tracking-widest text-[#3a4a5a] mb-1"
             style={FONT}
           >
             {homeName}

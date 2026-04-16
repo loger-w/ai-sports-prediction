@@ -53,7 +53,7 @@ function MarketCard({ market, label }: { market: MarketRecommendation; label: st
   return (
     <div className="px-4 py-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-[#3a4a5a]" style={FONT}>
+        <span className="text-[13px] font-bold uppercase tracking-wide text-[#3a4a5a]" style={FONT}>
           {label}
         </span>
         <Stars count={market.stars} />
@@ -67,7 +67,7 @@ function MarketCard({ market, label }: { market: MarketRecommendation; label: st
           {market.line != null && !isPass && ` ${market.line > 0 ? '+' : ''}${market.line}`}
         </span>
         <span
-          className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+          className="text-[13px] font-bold px-1.5 py-0.5 rounded"
           style={{
             ...FONT,
             color: RISK_COLORS[market.risk],
@@ -79,7 +79,7 @@ function MarketCard({ market, label }: { market: MarketRecommendation; label: st
       </div>
       {!isPass && (
         <>
-          <div className="flex items-center gap-3 text-[11px] text-[#4a5568] mb-2" style={FONT}>
+          <div className="flex items-center gap-3 text-[13px] text-[#4a5568] mb-2" style={FONT}>
             <span>
               {t.analysis.modelPct}:{' '}
               <span className="text-[#e2e8f0] font-bold">{market.model_pct.toFixed(1)}%</span>
@@ -102,7 +102,7 @@ function MarketCard({ market, label }: { market: MarketRecommendation; label: st
             {market.reasons.map((r) => (
               <span
                 key={r}
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1e2733] text-[#a0aec0]"
+                className="text-[12px] font-bold px-1.5 py-0.5 rounded bg-[#1e2733] text-[#a0aec0]"
                 style={FONT}
               >
                 {t.analysis[REASON_LABELS[r]]}
@@ -125,7 +125,7 @@ export function BettingCard({ data }: BettingCardProps) {
   return (
     <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] overflow-hidden">
       <div className="px-5 py-3 border-b border-[#1e2733]">
-        <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]" style={FONT}>
+        <span className="text-[12px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]" style={FONT}>
           {t.analysis.bettingRec}
         </span>
       </div>

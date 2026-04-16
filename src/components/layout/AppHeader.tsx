@@ -29,12 +29,12 @@ export function AppHeader() {
           to="/$lang/predictions"
           params={{ lang }}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold tracking-widest uppercase transition-colors',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold tracking-widest uppercase transition-colors',
             'text-[#4a5568] hover:text-[#a0aec0]',
           )}
           activeProps={{
             className:
-              'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold tracking-widest uppercase bg-[rgba(0,229,160,0.12)] text-[#00e5a0]',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold tracking-widest uppercase bg-[rgba(0,229,160,0.12)] text-[#00e5a0]',
           }}
           style={{ fontFamily: 'var(--font-barlow-condensed)' }}
         >
@@ -45,12 +45,12 @@ export function AppHeader() {
           to="/$lang/accuracy"
           params={{ lang }}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold tracking-widest uppercase transition-colors',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold tracking-widest uppercase transition-colors',
             'text-[#4a5568] hover:text-[#a0aec0]',
           )}
           activeProps={{
             className:
-              'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold tracking-widest uppercase bg-[rgba(0,229,160,0.12)] text-[#00e5a0]',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold tracking-widest uppercase bg-[rgba(0,229,160,0.12)] text-[#00e5a0]',
           }}
           style={{ fontFamily: 'var(--font-barlow-condensed)' }}
         >
@@ -66,7 +66,7 @@ export function AppHeader() {
       >
         <span
           className={cn(
-            'px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors',
+            'px-2.5 py-1 text-[13px] font-bold tracking-wide transition-colors',
             currentLang === 'en'
               ? 'bg-[#1e2733] text-[#00e5a0]'
               : 'text-[#4a5568]',
@@ -77,7 +77,7 @@ export function AppHeader() {
         </span>
         <span
           className={cn(
-            'px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors',
+            'px-2.5 py-1 text-[13px] font-bold tracking-wide transition-colors',
             currentLang === 'zh'
               ? 'bg-[#1e2733] text-[#00e5a0]'
               : 'text-[#4a5568]',

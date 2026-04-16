@@ -59,21 +59,21 @@ export function GameCard({ game }: GameCardProps) {
       {/* Card header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-[#0d1117] border-b border-[#1e2733]">
         <span
-          className="text-[10px] font-bold tracking-[0.18em] uppercase text-[#00e5a0]"
+          className="text-[13px] font-bold tracking-[0.18em] uppercase text-[#00e5a0]"
           style={{ fontFamily: 'var(--font-barlow-condensed)' }}
         >
           {game.sport_id.toUpperCase()}
         </span>
         {localTime && (
           <span
-            className="text-[10px] text-[#3a4a5a]"
+            className="text-[13px] text-[#3a4a5a]"
             style={{ fontFamily: 'var(--font-barlow-condensed)' }}
           >
             {localTime}
           </span>
         )}
         <span
-          className="text-[10px] text-[#3a4a5a]"
+          className="text-[13px] text-[#3a4a5a]"
           style={{ fontFamily: 'var(--font-barlow-condensed)' }}
         >
           {gameDate}
@@ -94,7 +94,7 @@ export function GameCard({ game }: GameCardProps) {
               {homeTeam.abbreviation}
             </div>
             <div
-              className="text-[10px] uppercase tracking-widest text-[#3a4a5a] truncate"
+              className="text-[13px] uppercase tracking-widest text-[#3a4a5a] truncate"
               style={{ fontFamily: 'var(--font-barlow-condensed)' }}
             >
               {homeName}
@@ -102,7 +102,7 @@ export function GameCard({ game }: GameCardProps) {
           </div>
 
           <div
-            className="text-[13px] font-bold text-[#2d3748] shrink-0"
+            className="text-[15px] font-bold text-[#2d3748] shrink-0"
             style={{ fontFamily: 'var(--font-barlow-condensed)' }}
           >
             {t.predictions.vs}
@@ -119,7 +119,7 @@ export function GameCard({ game }: GameCardProps) {
               {awayTeam.abbreviation}
             </div>
             <div
-              className="text-[10px] uppercase tracking-widest text-[#3a4a5a] truncate"
+              className="text-[13px] uppercase tracking-widest text-[#3a4a5a] truncate"
               style={{ fontFamily: 'var(--font-barlow-condensed)' }}
             >
               {awayName}
@@ -162,7 +162,7 @@ export function GameCard({ game }: GameCardProps) {
       <Link
         to="/$lang/$sport/$slug"
         params={{ lang, sport: game.sport_id, slug: game.slug }}
-        className="flex items-center justify-end px-4 py-2 border-t border-[#1e2733] text-[10px] font-bold tracking-wide text-[#3a4a5a] hover:text-[#00e5a0] transition-colors"
+        className="flex items-center justify-end px-4 py-2 border-t border-[#1e2733] text-[13px] font-bold tracking-wide text-[#3a4a5a] hover:text-[#00e5a0] transition-colors"
         style={{ fontFamily: 'var(--font-barlow-condensed)' }}
       >
         {t.gameDetail.viewDetail}

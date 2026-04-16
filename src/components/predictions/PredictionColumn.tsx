@@ -33,7 +33,7 @@ export function PredictionColumn({
       <div
         style={{
           ...FONT,
-          fontSize: '8px',
+          fontSize: '12px',
           fontWeight: 700,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
@@ -46,7 +46,7 @@ export function PredictionColumn({
 
       {/* Stars */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
-        <StarRating stars={stars} size={9} />
+        <StarRating stars={stars} size={12} />
       </div>
 
       {/* Pick or PASS */}
@@ -54,7 +54,7 @@ export function PredictionColumn({
         <div
           style={{
             ...FONT,
-            fontSize: '12px',
+            fontSize: '16px',
             fontWeight: 700,
             color: '#2d3748',
             letterSpacing: '0.05em',
@@ -66,7 +66,7 @@ export function PredictionColumn({
         <div
           style={{
             ...FONT,
-            fontSize: '13px',
+            fontSize: '16px',
             fontWeight: 800,
             color: '#00e5a0',
           }}
@@ -79,7 +79,7 @@ export function PredictionColumn({
       <div
         style={{
           ...FONT,
-          fontSize: '9px',
+          fontSize: '13px',
           color: '#2d3748',
           marginTop: '2px',
         }}
