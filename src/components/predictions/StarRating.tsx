@@ -3,7 +3,7 @@ interface StarRatingProps {
   size?: number  // px, default 9
 }
 
-export function StarRating({ stars, size = 9 }: StarRatingProps) {
+export function StarRating({ stars, size = 12 }: StarRatingProps) {
   return (
     <div style={{ display: 'flex', gap: '1px' }}>
       {Array.from({ length: 5 }).map((_, i) => (
