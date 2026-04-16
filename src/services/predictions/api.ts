@@ -1,5 +1,8 @@
+import dayjs from 'dayjs'
 import { supabase } from '@/lib/supabase'
+import { toLocalDateString } from '@/lib/timezone'
 import type { PredictionFilters } from '@/stores/predictions/predictionStore'
+import type { GameAnalysis } from '@/types/predictions/analysis'
 
 export interface GameWithPrediction {
   id: string
@@ -40,11 +43,15 @@ export interface GameWithPrediction {
     over_under_stars: number
     explanation_en: string | null
     explanation_zh: string | null
+    analysis: GameAnalysis | null
   }>
 }
 
 export function resolveDateRange(dateRange: string): { from: string; to: string } {
-  return { from: dateRange, to: dateRange }
+  return {
+    from: dayjs(dateRange).subtract(1, 'day').format('YYYY-MM-DD'),
+    to: dayjs(dateRange).add(1, 'day').format('YYYY-MM-DD'),
+  }
 }
 
 export async function fetchDailyPredictions(
@@ -82,6 +89,12 @@ export async function fetchDailyPredictions(
 
   // Only show games that have predictions
   results = results.filter((g) => g.predictions && g.predictions.length > 0)
+
+  // Filter to games whose local date matches the selected date
+  results = results.filter((g) => {
+    const localDate = g.game_time ? toLocalDateString(g.game_time) : g.game_date
+    return localDate === filters.dateRange
+  })
 
   // minStars filter: show games where at least one dimension has stars >= minStars
   if (filters.minStars > 1) {
@@ -225,7 +238,8 @@ export async function fetchGameDetail(slug: string): Promise<GameWithPrediction 
       predictions(id, moneyline_home_pct, moneyline_away_pct, moneyline_pick, moneyline_stars,
         spread_line, spread_pick, spread_pct, spread_stars,
         over_under_line, over_pct, under_pct, over_under_stars,
-        explanation_en, explanation_zh)
+        explanation_en, explanation_zh,
+        analysis)
     `,
     )
     .eq('slug', slug)
@@ -242,14 +256,17 @@ export async function fetchSportCounts(
 
   const { data, error } = await supabase
     .from('games')
-    .select('sport_id')
+    .select('sport_id, game_date, game_time, predictions(id)')
     .gte('game_date', from)
     .lte('game_date', to)
 
   if (error || !data) return {}
 
   const counts: Record<string, number> = {}
-  for (const row of data) {
+  for (const row of data as unknown as Array<{ sport_id: string; game_date: string; game_time: string | null; predictions: Array<{ id: string }> }>) {
+    if (!(row.predictions && row.predictions.length > 0)) continue
+    const localDate = row.game_time ? toLocalDateString(row.game_time) : row.game_date
+    if (localDate !== dateRange) continue
     counts[row.sport_id] = (counts[row.sport_id] ?? 0) + 1
   }
   return counts
@@ -260,18 +277,24 @@ export async function fetchSportCounts(
  * at least one game with a prediction.
  */
 export async function fetchDatesWithGames(from: string, to: string): Promise<string[]> {
+  const expandedFrom = dayjs(from).subtract(1, 'day').format('YYYY-MM-DD')
+  const expandedTo = dayjs(to).add(1, 'day').format('YYYY-MM-DD')
+
   const { data, error } = await supabase
     .from('games')
-    .select('game_date, predictions(id)')
-    .gte('game_date', from)
-    .lte('game_date', to)
+    .select('game_date, game_time, predictions(id)')
+    .gte('game_date', expandedFrom)
+    .lte('game_date', expandedTo)
 
   if (error || !data) return []
 
   const dates = new Set<string>()
-  for (const row of data as unknown as Array<{ game_date: string; predictions: Array<{ id: string }> }>) {
+  for (const row of data as unknown as Array<{ game_date: string; game_time: string | null; predictions: Array<{ id: string }> }>) {
     if (row.predictions && row.predictions.length > 0) {
-      dates.add(row.game_date)
+      const localDate = row.game_time ? toLocalDateString(row.game_time) : row.game_date
+      if (localDate && localDate >= from && localDate <= to) {
+        dates.add(localDate)
+      }
     }
   }
   return [...dates]
