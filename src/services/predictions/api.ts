@@ -1,301 +1,204 @@
-import dayjs from 'dayjs'
+// src/services/predictions/api.ts
 import { supabase } from '@/lib/supabase'
-import { toLocalDateString } from '@/lib/timezone'
 import type { PredictionFilters } from '@/stores/predictions/predictionStore'
-import type { GameAnalysis } from '@/types/predictions/analysis'
+import type {
+  Market,
+  RecResult,
+  RecommendationWithGame,
+} from '@/types/predictions/recommendation'
 
-export interface GameWithPrediction {
-  id: string
-  sport_id: string
-  game_date: string
-  game_time: string | null
-  slug: string
-  status: 'scheduled' | 'final'
-  home_score: number | null
-  away_score: number | null
-  home_team: {
-    id: string
-    name_en: string
-    name_zh: string
-    abbreviation: string
-    logo_url: string | null
+const RECS_SELECT = `
+  game_id, market, pick, line, stars, result,
+  game:games!inner(
+    id, sport_id, game_date, game_time, status, home_score, away_score,
+    home_team:teams!games_home_team_id_fkey(id, sport_id, name_zh, abbreviation, logo_url),
+    away_team:teams!games_away_team_id_fkey(id, sport_id, name_zh, abbreviation, logo_url)
+  )
+` as const
+
+function compareForSort(
+  a: RecommendationWithGame,
+  b: RecommendationWithGame,
+  sortBy: 'time' | 'stars',
+): number {
+  if (sortBy === 'stars') {
+    if (b.stars !== a.stars) return b.stars - a.stars
+    return a.game.game_time.localeCompare(b.game.game_time)
   }
-  away_team: {
-    id: string
-    name_en: string
-    name_zh: string
-    abbreviation: string
-    logo_url: string | null
-  }
-  predictions: Array<{
-    id: string
-    moneyline_home_pct: number
-    moneyline_away_pct: number
-    moneyline_pick: 'home' | 'away'
-    moneyline_stars: number
-    spread_line: number | null
-    spread_pick: 'home' | 'away' | null
-    spread_pct: number | null
-    spread_stars: number
-    over_under_line: number | null
-    over_pct: number | null
-    under_pct: number | null
-    over_under_stars: number
-    explanation_en: string | null
-    explanation_zh: string | null
-    analysis: GameAnalysis | null
-  }>
+  // time
+  const t = a.game.game_time.localeCompare(b.game.game_time)
+  if (t !== 0) return t
+  return b.stars - a.stars
 }
 
-export function resolveDateRange(dateRange: string): { from: string; to: string } {
-  return {
-    from: dayjs(dateRange).subtract(1, 'day').format('YYYY-MM-DD'),
-    to: dayjs(dateRange).add(1, 'day').format('YYYY-MM-DD'),
-  }
+export interface RecommendationFilters
+  extends Pick<PredictionFilters, 'sport' | 'dateRange' | 'minStars' | 'sortBy'> {
+  markets: Market[]
 }
 
-export async function fetchDailyPredictions(
-  filters: { sport: PredictionFilters['sport']; dateRange: string; minStars: number },
-): Promise<GameWithPrediction[]> {
-  const { from, to } = resolveDateRange(filters.dateRange)
+export async function fetchDailyRecommendations(
+  filters: RecommendationFilters,
+): Promise<RecommendationWithGame[]> {
+  if (filters.markets.length === 0) return []
 
-  let query = supabase
-    .from('games')
-    .select(
-      `
-      id, sport_id, game_date, game_time, slug, status, home_score, away_score,
-      home_team:teams!games_home_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
-      away_team:teams!games_away_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
-      predictions(id, moneyline_home_pct, moneyline_away_pct, moneyline_pick, moneyline_stars,
-        spread_line, spread_pick, spread_pct, spread_stars,
-        over_under_line, over_pct, under_pct, over_under_stars,
-        explanation_en, explanation_zh)
-    `,
-    )
-    .gte('game_date', from)
-    .lte('game_date', to)
-    .order('game_time', { ascending: true, nullsFirst: false })
+  let q = supabase
+    .from('recommendations')
+    .select(RECS_SELECT)
+    .gte('stars', filters.minStars)
+    .in('market', filters.markets)
+    .eq('game.game_date', filters.dateRange)
 
   if (filters.sport !== 'all') {
-    query = query.eq('sport_id', filters.sport)
+    q = q.eq('game.sport_id', filters.sport)
   }
 
-  const { data, error } = await query
+  const { data, error } = await q
 
   if (error) throw new Error(error.message)
   if (!data) return []
 
-  let results = data as unknown as GameWithPrediction[]
-
-  // Only show games that have predictions
-  results = results.filter((g) => g.predictions && g.predictions.length > 0)
-
-  // Filter to games whose local date matches the selected date
-  results = results.filter((g) => {
-    const localDate = g.game_time ? toLocalDateString(g.game_time) : g.game_date
-    return localDate === filters.dateRange
-  })
-
-  // minStars filter: show games where at least one dimension has stars >= minStars
-  if (filters.minStars > 1) {
-    results = results.filter((g) =>
-      g.predictions.some(
-        (p) =>
-          p.moneyline_stars >= filters.minStars ||
-          p.spread_stars >= filters.minStars ||
-          p.over_under_stars >= filters.minStars,
-      ),
-    )
-  }
-
-  return results
+  const rows = data as unknown as RecommendationWithGame[]
+  return rows.slice().sort((a, b) => compareForSort(a, b, filters.sortBy))
 }
 
-// ── Accuracy ─────────────────────────────────────────────────────────────────
-
-export interface AccuracyStat {
-  total: number
-  winnerCorrect: number
-  ouCorrect: number
-  ouTotal: number
-  winnerPct: number
-  ouPct: number
-}
-
-export interface DailyPoint {
-  date: string
-  winnerPct: number
-  ouPct: number
-}
-
-export interface AccuracyData {
-  overall: AccuracyStat
-  bySport: Record<string, AccuracyStat>
-  daily: DailyPoint[]
-}
-
-export function pct(correct: number, total: number): number {
-  if (total === 0) return 0
-  return Math.round((correct / total) * 1000) / 10
-}
-
-export async function fetchAccuracyData(): Promise<AccuracyData> {
-  const { data, error } = await supabase
-    .from('prediction_results')
-    .select(
-      `winner_correct, over_under_correct,
-       game:games!prediction_results_game_id_fkey(game_date, sport_id)`,
-    )
-
-  if (error || !data) throw new Error(error?.message ?? 'Failed to load accuracy data')
-
-  // Supabase may type the FK join as an array; normalise to a single object
-  type RawRow = {
-    winner_correct: boolean
-    over_under_correct: boolean | null
-    game: { game_date: string; sport_id: string } | Array<{ game_date: string; sport_id: string }>
-  }
-
-  // Single-pass aggregation using Maps (js-combine-iterations + js-index-maps)
-  type Bucket = { wTotal: number; wCorrect: number; ouTotal: number; ouCorrect: number }
-  const newBucket = (): Bucket => ({ wTotal: 0, wCorrect: 0, ouTotal: 0, ouCorrect: 0 })
-
-  const overall = newBucket()
-  const bySportMap = new Map<string, Bucket>()
-  const byDateMap = new Map<string, Bucket>()
-
-  for (const raw of data as unknown as RawRow[]) {
-    const game = Array.isArray(raw.game) ? raw.game[0] : raw.game
-    if (!game) continue
-    const { game_date, sport_id } = game
-    const row = { winner_correct: raw.winner_correct, over_under_correct: raw.over_under_correct }
-
-    // Overall
-    overall.wTotal++
-    if (row.winner_correct) overall.wCorrect++
-    if (row.over_under_correct !== null) {
-      overall.ouTotal++
-      if (row.over_under_correct) overall.ouCorrect++
-    }
-
-    // By sport
-    if (!bySportMap.has(sport_id)) bySportMap.set(sport_id, newBucket())
-    const s = bySportMap.get(sport_id)!
-    s.wTotal++
-    if (row.winner_correct) s.wCorrect++
-    if (row.over_under_correct !== null) {
-      s.ouTotal++
-      if (row.over_under_correct) s.ouCorrect++
-    }
-
-    // By date
-    if (!byDateMap.has(game_date)) byDateMap.set(game_date, newBucket())
-    const d = byDateMap.get(game_date)!
-    d.wTotal++
-    if (row.winner_correct) d.wCorrect++
-    if (row.over_under_correct !== null) {
-      d.ouTotal++
-      if (row.over_under_correct) d.ouCorrect++
-    }
-  }
-
-  const toBucket = (b: Bucket): AccuracyStat => ({
-    total: b.wTotal,
-    winnerCorrect: b.wCorrect,
-    ouCorrect: b.ouCorrect,
-    ouTotal: b.ouTotal,
-    winnerPct: pct(b.wCorrect, b.wTotal),
-    ouPct: pct(b.ouCorrect, b.ouTotal),
-  })
-
-  const bySport: Record<string, AccuracyStat> = {}
-  for (const [sport, bucket] of bySportMap) {
-    bySport[sport] = toBucket(bucket)
-  }
-
-  // Sort dates ascending for chart (ES2022-safe immutable sort)
-  const daily: DailyPoint[] = [...byDateMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, b]) => ({
-      date,
-      winnerPct: pct(b.wCorrect, b.wTotal),
-      ouPct: pct(b.ouCorrect, b.ouTotal),
-    }))
-
-  return { overall: toBucket(overall), bySport, daily }
-}
-
-// ── Game detail ───────────────────────────────────────────────────────────────
-
-export async function fetchGameDetail(slug: string): Promise<GameWithPrediction | null> {
-  const { data, error } = await supabase
-    .from('games')
-    .select(
-      `
-      id, sport_id, game_date, game_time, slug, status, home_score, away_score,
-      home_team:teams!games_home_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
-      away_team:teams!games_away_team_id_fkey(id, name_en, name_zh, abbreviation, logo_url),
-      predictions(id, moneyline_home_pct, moneyline_away_pct, moneyline_pick, moneyline_stars,
-        spread_line, spread_pick, spread_pct, spread_stars,
-        over_under_line, over_pct, under_pct, over_under_stars,
-        explanation_en, explanation_zh,
-        analysis)
-    `,
-    )
-    .eq('slug', slug)
-    .single()
-
-  if (error || !data) return null
-  return data as unknown as GameWithPrediction
-}
-
-export async function fetchSportCounts(
+export async function fetchRecommendationCounts(
   dateRange: string,
 ): Promise<Record<string, number>> {
-  const { from, to } = resolveDateRange(dateRange)
-
+  // Number of recommendations per sport for the chosen date.
   const { data, error } = await supabase
-    .from('games')
-    .select('sport_id, game_date, game_time, predictions(id)')
-    .gte('game_date', from)
-    .lte('game_date', to)
+    .from('recommendations')
+    .select('market, game:games!inner(sport_id, game_date)')
+    .eq('game.game_date', dateRange)
 
   if (error || !data) return {}
 
   const counts: Record<string, number> = {}
-  for (const row of data as unknown as Array<{ sport_id: string; game_date: string; game_time: string | null; predictions: Array<{ id: string }> }>) {
-    if (!(row.predictions && row.predictions.length > 0)) continue
-    const localDate = row.game_time ? toLocalDateString(row.game_time) : row.game_date
-    if (localDate !== dateRange) continue
-    counts[row.sport_id] = (counts[row.sport_id] ?? 0) + 1
+  for (const row of data as unknown as Array<{
+    market: string
+    game: { sport_id: string }
+  }>) {
+    const sid = row.game.sport_id
+    counts[sid] = (counts[sid] ?? 0) + 1
   }
   return counts
 }
 
-/**
- * Returns an array of YYYY-MM-DD date strings in [from, to] that have
- * at least one game with a prediction.
- */
-export async function fetchDatesWithGames(from: string, to: string): Promise<string[]> {
-  const expandedFrom = dayjs(from).subtract(1, 'day').format('YYYY-MM-DD')
-  const expandedTo = dayjs(to).add(1, 'day').format('YYYY-MM-DD')
-
+/** Returns YYYY-MM-DD strings within [from, to] that have at least one recommendation. */
+export async function fetchDatesWithRecommendations(from: string, to: string): Promise<string[]> {
   const { data, error } = await supabase
-    .from('games')
-    .select('game_date, game_time, predictions(id)')
-    .gte('game_date', expandedFrom)
-    .lte('game_date', expandedTo)
+    .from('recommendations')
+    .select('game:games!inner(game_date)')
+    .gte('game.game_date', from)
+    .lte('game.game_date', to)
 
   if (error || !data) return []
 
   const dates = new Set<string>()
-  for (const row of data as unknown as Array<{ game_date: string; game_time: string | null; predictions: Array<{ id: string }> }>) {
-    if (row.predictions && row.predictions.length > 0) {
-      const localDate = row.game_time ? toLocalDateString(row.game_time) : row.game_date
-      if (localDate && localDate >= from && localDate <= to) {
-        dates.add(localDate)
-      }
-    }
+  for (const row of data as unknown as Array<{ game: { game_date: string } }>) {
+    if (row.game?.game_date) dates.add(row.game.game_date)
   }
   return [...dates]
+}
+
+// ── Accuracy ────────────────────────────────────────────────────────────────
+
+export interface AccuracyBucket {
+  total: number                     // resolved (result IS NOT NULL and != 'void')
+  wins: number
+  losses: number
+  pushes: number
+  voids: number
+  pct: number                       // wins / (wins + losses); pushes & voids excluded
+}
+
+export interface AccuracyData {
+  overall: AccuracyBucket
+  byMarket: Record<Market, AccuracyBucket>
+  byStars: Record<number, AccuracyBucket>           // 1..5
+  daily: Array<{ date: string; pct: number; total: number }>
+}
+
+const EMPTY_BUCKET = (): AccuracyBucket => ({
+  total: 0,
+  wins: 0,
+  losses: 0,
+  pushes: 0,
+  voids: 0,
+  pct: 0,
+})
+
+function add(b: AccuracyBucket, r: RecResult): void {
+  b.total++
+  if (r === 'win') b.wins++
+  else if (r === 'loss') b.losses++
+  else if (r === 'push') b.pushes++
+  else if (r === 'void') b.voids++
+}
+
+function pct(b: AccuracyBucket): number {
+  const decided = b.wins + b.losses
+  if (decided === 0) return 0
+  return Math.round((b.wins / decided) * 1000) / 10
+}
+
+function finalize(b: AccuracyBucket): AccuracyBucket {
+  b.pct = pct(b)
+  return b
+}
+
+export async function fetchAccuracyData(): Promise<AccuracyData> {
+  const { data, error } = await supabase
+    .from('recommendations')
+    .select('market, stars, result, game:games!inner(game_date)')
+    .not('result', 'is', null)
+
+  if (error || !data) {
+    return {
+      overall: EMPTY_BUCKET(),
+      byMarket: { ml: EMPTY_BUCKET(), spread: EMPTY_BUCKET(), ou: EMPTY_BUCKET() },
+      byStars: { 1: EMPTY_BUCKET(), 2: EMPTY_BUCKET(), 3: EMPTY_BUCKET(), 4: EMPTY_BUCKET(), 5: EMPTY_BUCKET() },
+      daily: [],
+    }
+  }
+
+  const overall = EMPTY_BUCKET()
+  const byMarket: Record<Market, AccuracyBucket> = {
+    ml: EMPTY_BUCKET(),
+    spread: EMPTY_BUCKET(),
+    ou: EMPTY_BUCKET(),
+  }
+  const byStars: Record<number, AccuracyBucket> = {
+    1: EMPTY_BUCKET(), 2: EMPTY_BUCKET(), 3: EMPTY_BUCKET(),
+    4: EMPTY_BUCKET(), 5: EMPTY_BUCKET(),
+  }
+  const dailyMap = new Map<string, AccuracyBucket>()
+
+  type Row = {
+    market: Market
+    stars: number
+    result: RecResult
+    game: { game_date: string } | Array<{ game_date: string }>
+  }
+
+  for (const raw of data as unknown as Row[]) {
+    const game = Array.isArray(raw.game) ? raw.game[0] : raw.game
+    if (!game) continue
+
+    add(overall, raw.result)
+    add(byMarket[raw.market], raw.result)
+    add(byStars[raw.stars] ?? (byStars[raw.stars] = EMPTY_BUCKET()), raw.result)
+
+    if (!dailyMap.has(game.game_date)) dailyMap.set(game.game_date, EMPTY_BUCKET())
+    add(dailyMap.get(game.game_date)!, raw.result)
+  }
+
+  finalize(overall)
+  for (const m of Object.keys(byMarket) as Market[]) finalize(byMarket[m])
+  for (const s of Object.keys(byStars).map(Number)) finalize(byStars[s])
+
+  const daily = [...dailyMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, bucket]) => ({ date, pct: pct(bucket), total: bucket.total }))
+
+  return { overall, byMarket, byStars, daily }
 }
