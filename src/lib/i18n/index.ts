@@ -1,14 +1,12 @@
-import { useParams } from '@tanstack/react-router'
-import { en } from './en'
-import { zh } from './zh'
+// src/lib/i18n/index.ts
+// Single-locale entry point. `useTranslation` keeps the same API for callers,
+// returning the zh translation object plus a fixed lang='zh'.
 
-const translations = { en, zh } as const
+import { zh, type Translations } from './zh'
 
-export type Lang = keyof typeof translations
-export type { Translations } from './en'
+export type Lang = 'zh'
+export type { Translations }
 
-export function useTranslation() {
-  const params = useParams({ strict: false }) as { lang?: string }
-  const lang: Lang = params.lang === 'zh' ? 'zh' : 'en'
-  return { t: translations[lang], lang }
+export function useTranslation(): { t: Translations; lang: Lang } {
+  return { t: zh, lang: 'zh' }
 }
