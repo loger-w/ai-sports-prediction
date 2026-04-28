@@ -1,10 +1,11 @@
+// src/hooks/predictions/useAccuracyStats.ts
 import { useQuery } from '@tanstack/react-query'
 import { fetchAccuracyData } from '@/services/predictions/api'
 
-export function useAccuracyStats() {
+export function useAccuracyData() {
   return useQuery({
-    queryKey: ['accuracyStats'],
+    queryKey: ['accuracyData'],
     queryFn: fetchAccuracyData,
-    staleTime: 5 * 60 * 1000, // accuracy data changes slowly
+    staleTime: 5 * 60 * 1000,
   })
 }

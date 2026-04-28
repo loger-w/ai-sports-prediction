@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import { CalendarDots } from '@phosphor-icons/react'
 import { localToday } from '@/lib/timezone'
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
-import { useDatesWithGames } from '@/hooks/predictions/useDatesWithGames'
+import { useDatesWithRecommendations } from '@/hooks/predictions/useDatesWithRecommendations'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
 
@@ -32,8 +32,8 @@ export function DateScrollBar() {
   const from = dates[0]
   const to = dates[dates.length - 1]
 
-  const { data: datesWithGames = [] } = useDatesWithGames(from, to)
-  const datesWithGamesSet = new Set(datesWithGames)
+  const { data: datesWithRecs = [] } = useDatesWithRecommendations(from, to)
+  const datesWithGamesSet = new Set(datesWithRecs)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const todayRef = useRef<HTMLButtonElement>(null)
