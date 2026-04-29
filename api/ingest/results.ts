@@ -76,14 +76,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const gameId = gameRows[0].id as string
 
-    // Update game with score + status
+    // Mark game as final (scores no longer stored)
     const { error: gameUpdateErr } = await supabase
       .from('games')
-      .update({
-        home_score: item.home_score,
-        away_score: item.away_score,
-        status: 'final',
-      })
+      .update({ status: 'final' })
       .eq('id', gameId)
 
     if (gameUpdateErr) {

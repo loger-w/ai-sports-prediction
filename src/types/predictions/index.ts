@@ -52,8 +52,6 @@ export interface GameResultInput {
   home_team: string
   away_team: string
   game_time: string
-  home_score: number
-  away_score: number
   recommendations: RecommendationResultInput[]
 }
 

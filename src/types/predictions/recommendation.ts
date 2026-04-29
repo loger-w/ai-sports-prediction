@@ -21,8 +21,6 @@ export interface GameRow {
   game_date: string             // YYYY-MM-DD (Taiwan)
   game_time: string             // YYYY-MM-DD HH:mm:ss (Taiwan, no TZ)
   status: GameStatus
-  home_score: number | null
-  away_score: number | null
 }
 
 export interface RecommendationRow {

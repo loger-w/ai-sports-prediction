@@ -10,7 +10,7 @@ import type {
 const RECS_SELECT = `
   game_id, market, pick, line, stars, result,
   game:games!inner(
-    id, sport_id, game_date, game_time, status, home_score, away_score,
+    id, sport_id, game_date, game_time, status,
     home_team:teams!games_home_team_id_fkey(id, sport_id, name_zh, abbreviation, logo_url),
     away_team:teams!games_away_team_id_fkey(id, sport_id, name_zh, abbreviation, logo_url)
   )

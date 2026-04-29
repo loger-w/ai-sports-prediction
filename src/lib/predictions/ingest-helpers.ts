@@ -104,11 +104,6 @@ export function validateResultsPayload(body: unknown): ResultsPayload {
     }
     checkGameTime(prefix, item.game_time)
 
-    for (const f of ['home_score', 'away_score']) {
-      if (!Number.isInteger(item[f]) || (item[f] as number) < 0)
-        throw new Error(`${prefix}.${f} must be a non-negative integer`)
-    }
-
     if (!Array.isArray(item.recommendations))
       throw new Error(`${prefix}.recommendations must be an array`)
 

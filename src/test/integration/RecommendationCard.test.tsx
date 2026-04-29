@@ -25,8 +25,6 @@ function makeRec(overrides: Partial<RecommendationWithGame> = {}): Recommendatio
       game_date: '2026-04-29',
       game_time: '2026-04-29 22:10:00',
       status: 'scheduled',
-      home_score: null,
-      away_score: null,
       home_team: {
         id: 'lad', sport_id: 'mlb', name_zh: '道奇', abbreviation: 'LAD', logo_url: null,
       },

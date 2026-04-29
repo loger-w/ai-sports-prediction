@@ -19,7 +19,7 @@ function rec(overrides: Partial<RecommendationWithGame> = {}): RecommendationWit
       id: 'g1', sport_id: 'mlb',
       home_team_id: 'lad', away_team_id: 'sd',
       game_date: '2026-04-29', game_time: '2026-04-29 22:10:00',
-      status: 'scheduled', home_score: null, away_score: null,
+      status: 'scheduled',
       home_team: { id: 'lad', sport_id: 'mlb', name_zh: '道奇', abbreviation: 'LAD', logo_url: null },
       away_team: { id: 'sd', sport_id: 'mlb', name_zh: '教士', abbreviation: 'SD', logo_url: null },
     },

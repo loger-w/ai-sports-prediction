@@ -85,8 +85,6 @@ describe('validateResultsPayload', () => {
         home_team: 'LAD',
         away_team: 'SD',
         game_time: '2026-04-29 22:10:00',
-        home_score: 5,
-        away_score: 3,
         recommendations: [
           { market: 'ml', result: 'win' },
           { market: 'spread', result: 'loss' },
@@ -98,12 +96,6 @@ describe('validateResultsPayload', () => {
 
   it('accepts a valid payload', () => {
     expect(() => validateResultsPayload(validPayload)).not.toThrow()
-  })
-
-  it('rejects negative score', () => {
-    const p = JSON.parse(JSON.stringify(validPayload))
-    p.results[0].home_score = -1
-    expect(() => validateResultsPayload(p)).toThrow(/home_score/)
   })
 
   it('rejects bad result enum', () => {
