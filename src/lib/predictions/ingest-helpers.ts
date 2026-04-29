@@ -1,26 +1,32 @@
+// src/lib/predictions/ingest-helpers.ts
 import type {
-  MarketResult,
-  SchedulePayload,
   PredictionsPayload,
   ResultsPayload,
+  SchedulePayload,
 } from '@/types/predictions/index.js'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-const VALID_RESULTS = new Set<string>(['WIN', 'LOSS', 'PUSH', 'PASS'])
+const TIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/   // Taiwan local, no TZ
+const VALID_MARKETS = new Set(['ml', 'spread', 'ou'])
+const VALID_PICKS = new Set(['home', 'away', 'over', 'under'])
+const VALID_RESULTS = new Set(['win', 'loss', 'push', 'void'])
 
-export function generateSlug(homeTeamId: string, awayTeamId: string, date: string): string {
-  return `${homeTeamId}-vs-${awayTeamId}-${date}`
+function isStars(v: unknown): boolean {
+  return Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 5
 }
 
-export function mapResultToBool(result: MarketResult | null): boolean | null {
-  if (result === 'WIN') return true
-  if (result === 'LOSS' || result === 'PUSH') return false
-  return null // PASS or null
+function isFiniteNum(v: unknown): boolean {
+  return typeof v === 'number' && Number.isFinite(v)
 }
 
-// ── Schedule payload ─────────────────────────────────────────────────────────
+function checkGameTime(prefix: string, val: unknown): void {
+  if (typeof val !== 'string' || !TIME_RE.test(val))
+    throw new Error(`${prefix}.game_time must be "YYYY-MM-DD HH:mm:ss" Taiwan local`)
+}
 
-export function validateSchedulePayload(body: unknown): SchedulePayload {
+// ── Predictions payload ─────────────────────────────────────────────────────
+
+export function validatePredictionsPayload(body: unknown): PredictionsPayload {
   if (!body || typeof body !== 'object') throw new Error('Request body must be a JSON object')
   const b = body as Record<string, unknown>
 
@@ -30,91 +36,53 @@ export function validateSchedulePayload(body: unknown): SchedulePayload {
     throw new Error('games must be a non-empty array')
 
   for (const [i, g] of b.games.entries()) {
-    if (!g || typeof g !== 'object') throw new Error(`games[${i}] must be an object`)
+    const prefix = `games[${i}]`
+    if (!g || typeof g !== 'object') throw new Error(`${prefix} must be an object`)
     const game = g as Record<string, unknown>
-    for (const field of ['home_team', 'away_team', 'game_time']) {
-      if (typeof game[field] !== 'string' || !game[field])
-        throw new Error(`games[${i}].${field} is required`)
+
+    for (const f of ['home_team', 'away_team']) {
+      if (typeof game[f] !== 'string' || !game[f])
+        throw new Error(`${prefix}.${f} is required`)
     }
-  }
+    checkGameTime(prefix, game.game_time)
 
-  return b as unknown as SchedulePayload
-}
+    if (!Array.isArray(game.recommendations))
+      throw new Error(`${prefix}.recommendations must be an array (use [] for no recs)`)
 
-// ── Predictions payload ──────────────────────────────────────────────────────
+    for (const [j, r] of (game.recommendations as unknown[]).entries()) {
+      const rprefix = `${prefix}.recommendations[${j}]`
+      if (!r || typeof r !== 'object') throw new Error(`${rprefix} must be an object`)
+      const rec = r as Record<string, unknown>
 
-export function validatePredictionsPayload(body: unknown): PredictionsPayload {
-  if (!body || typeof body !== 'object') throw new Error('Request body must be a JSON object')
-  const b = body as Record<string, unknown>
+      if (typeof rec.market !== 'string' || !VALID_MARKETS.has(rec.market))
+        throw new Error(`${rprefix}.market must be ml | spread | ou`)
+      if (typeof rec.pick !== 'string' || !VALID_PICKS.has(rec.pick))
+        throw new Error(`${rprefix}.pick must be home | away | over | under`)
 
-  if (typeof b.date !== 'string' || !DATE_RE.test(b.date))
-    throw new Error('date must be YYYY-MM-DD')
-  if (!Array.isArray(b.predictions) || b.predictions.length === 0)
-    throw new Error('predictions must be a non-empty array')
-
-  for (const [i, p] of b.predictions.entries()) {
-    if (!p || typeof p !== 'object') throw new Error(`predictions[${i}] must be an object`)
-    const pred = p as Record<string, unknown>
-
-    for (const field of ['home_team', 'away_team', 'game_time']) {
-      if (typeof pred[field] !== 'string' || !pred[field])
-        throw new Error(`predictions[${i}].${field} is required`)
-    }
-
-    const hasML  = pred.predicted_winner !== null && pred.predicted_winner !== undefined
-    const hasOU  = pred.ou_rec !== null && pred.ou_rec !== undefined
-    const hasRL  = pred.run_line_rec !== null && pred.run_line_rec !== undefined
-    if (!hasML && !hasOU && !hasRL)
-      throw new Error(`predictions[${i}]: at least one market must be non-null`)
-
-    if (hasML) {
-      if (pred.predicted_winner !== 'home' && pred.predicted_winner !== 'away')
-        throw new Error(`predictions[${i}].predicted_winner must be 'home' or 'away'`)
-      if (typeof pred.predicted_home_pct !== 'number' || pred.predicted_home_pct < 0 || pred.predicted_home_pct > 100)
-        throw new Error(`predictions[${i}].predicted_home_pct must be 0–100`)
-      if (!isStars(pred.ml_stars))
-        throw new Error(`predictions[${i}].ml_stars must be integer 1–5`)
-    }
-
-    if (hasOU) {
-      if (pred.ou_rec !== 'over' && pred.ou_rec !== 'under')
-        throw new Error(`predictions[${i}].ou_rec must be 'over' or 'under'`)
-      if (typeof pred.ou_line !== 'number')
-        throw new Error(`predictions[${i}].ou_line must be a number`)
-      if (!isStars(pred.ou_stars))
-        throw new Error(`predictions[${i}].ou_stars must be integer 1–5`)
-    }
-
-    if (hasRL) {
-      if (pred.run_line_rec !== 'home' && pred.run_line_rec !== 'away')
-        throw new Error(`predictions[${i}].run_line_rec must be 'home' or 'away'`)
-      if (typeof pred.run_line !== 'number')
-        throw new Error(`predictions[${i}].run_line must be a number`)
-      if (!isStars(pred.run_line_stars))
-        throw new Error(`predictions[${i}].run_line_stars must be integer 1–5`)
-    }
-
-    // Optional analysis validation (lightweight — deep validation is done by assemble_analysis.py)
-    if (pred.analysis !== undefined && pred.analysis !== null) {
-      const a = pred.analysis as Record<string, unknown>
-      if (a.schema_version !== '1.0')
-        throw new Error(`predictions[${i}].analysis.schema_version must be '1.0'`)
-      const requiredKeys = [
-        'meta', 'recent_form', 'pitching_matchup', 'lineup_analysis',
-        'bullpen_and_injuries', 'environment', 'signal_adjustments',
-        'win_probability', 'score_prediction', 'betting_recommendations',
-      ]
-      for (const key of requiredKeys) {
-        if (!(key in a))
-          throw new Error(`predictions[${i}].analysis.${key} is required`)
+      if (rec.market === 'ml') {
+        if (rec.line !== null) throw new Error(`${rprefix}: ml must have line=null`)
+        if (rec.pick !== 'home' && rec.pick !== 'away')
+          throw new Error(`${rprefix}.pick must be home or away for ml`)
+      } else if (rec.market === 'spread') {
+        if (!isFiniteNum(rec.line)) throw new Error(`${rprefix}.line must be a number for spread`)
+        if (rec.pick !== 'home' && rec.pick !== 'away')
+          throw new Error(`${rprefix}.pick must be home or away for spread`)
+      } else {
+        // ou
+        if (!isFiniteNum(rec.line)) throw new Error(`${rprefix}.line must be a number for ou`)
+        if (rec.pick !== 'over' && rec.pick !== 'under')
+          throw new Error(`${rprefix}.pick must be over or under for ou`)
       }
+
+      if (!isStars(rec.stars))
+        throw new Error(`${rprefix}.stars must be an integer 1-5`)
     }
   }
 
   return b as unknown as PredictionsPayload
 }
 
-// ── Results payload ──────────────────────────────────────────────────────────
+// ── Results payload ─────────────────────────────────────────────────────────
 
 export function validateResultsPayload(body: unknown): ResultsPayload {
   if (!body || typeof body !== 'object') throw new Error('Request body must be a JSON object')
@@ -126,31 +94,59 @@ export function validateResultsPayload(body: unknown): ResultsPayload {
     throw new Error('results must be a non-empty array')
 
   for (const [i, r] of b.results.entries()) {
-    if (!r || typeof r !== 'object') throw new Error(`results[${i}] must be an object`)
-    const res = r as Record<string, unknown>
+    const prefix = `results[${i}]`
+    if (!r || typeof r !== 'object') throw new Error(`${prefix} must be an object`)
+    const item = r as Record<string, unknown>
 
-    for (const field of ['home_team', 'away_team', 'game_time']) {
-      if (typeof res[field] !== 'string' || !res[field])
-        throw new Error(`results[${i}].${field} is required`)
+    for (const f of ['home_team', 'away_team']) {
+      if (typeof item[f] !== 'string' || !item[f])
+        throw new Error(`${prefix}.${f} is required`)
     }
+    checkGameTime(prefix, item.game_time)
 
-    for (const field of ['actual_home_score', 'actual_away_score']) {
-      if (!Number.isInteger(res[field]) || (res[field] as number) < 0)
-        throw new Error(`results[${i}].${field} must be a non-negative integer`)
-    }
+    if (!Array.isArray(item.recommendations))
+      throw new Error(`${prefix}.recommendations must be an array`)
 
-    for (const field of ['ml_result', 'ou_result', 'run_line_result']) {
-      const val = res[field]
-      if (val !== null && val !== undefined && !VALID_RESULTS.has(val as string))
-        throw new Error(`results[${i}].${field} must be WIN | LOSS | PUSH | PASS | null`)
+    for (const [j, rec] of (item.recommendations as unknown[]).entries()) {
+      const rprefix = `${prefix}.recommendations[${j}]`
+      if (!rec || typeof rec !== 'object') throw new Error(`${rprefix} must be an object`)
+      const rr = rec as Record<string, unknown>
+
+      if (typeof rr.market !== 'string' || !VALID_MARKETS.has(rr.market))
+        throw new Error(`${rprefix}.market must be ml | spread | ou`)
+      if (typeof rr.result !== 'string' || !VALID_RESULTS.has(rr.result))
+        throw new Error(`${rprefix}.result must be win | loss | push | void`)
     }
   }
 
   return b as unknown as ResultsPayload
 }
 
-// ── Internal helpers ─────────────────────────────────────────────────────────
+// ── Schedule payload ────────────────────────────────────────────────────────
 
-function isStars(val: unknown): boolean {
-  return Number.isInteger(val) && (val as number) >= 1 && (val as number) <= 5
+export function validateSchedulePayload(body: unknown): SchedulePayload {
+  if (!body || typeof body !== 'object') throw new Error('Request body must be a JSON object')
+  const b = body as Record<string, unknown>
+
+  if (typeof b.date !== 'string' || !DATE_RE.test(b.date))
+    throw new Error('date must be YYYY-MM-DD')
+  if (!Array.isArray(b.games) || b.games.length === 0)
+    throw new Error('games must be a non-empty array')
+
+  for (const [i, g] of b.games.entries()) {
+    const prefix = `games[${i}]`
+    if (!g || typeof g !== 'object') throw new Error(`${prefix} must be an object`)
+    const game = g as Record<string, unknown>
+    for (const f of ['home_team', 'away_team']) {
+      if (typeof game[f] !== 'string' || !game[f])
+        throw new Error(`${prefix}.${f} is required`)
+    }
+    checkGameTime(prefix, game.game_time)
+  }
+
+  return b as unknown as SchedulePayload
+}
+
+export function gameKey(home_team: string, away_team: string, game_time: string): string {
+  return `${home_team}-vs-${away_team}@${game_time}`
 }

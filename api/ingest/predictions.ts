@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import {
-  generateSlug,
+  gameKey,
   validatePredictionsPayload,
 } from '../../src/lib/predictions/ingest-helpers.js'
 import type { IngestItemResult } from '../../src/types/predictions/index.js'
@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select('id, abbreviation')
     .eq('sport_id', 'mlb')
 
-  if (teamsErr || !teams) {
+  if (teamsErr) {
     return res.status(500).json({ error: 'Failed to load teams' })
   }
 
@@ -44,26 +44,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const results: IngestItemResult[] = []
   let upserted = 0
+  let totalRecs = 0
   let errors = 0
 
-  for (const item of payload.predictions) {
-    const homeId = teamByAbbr.get(item.home_team.toUpperCase())
-    const awayId = teamByAbbr.get(item.away_team.toUpperCase())
+  for (const g of payload.games) {
+    const key = gameKey(g.home_team, g.away_team, g.game_time)
+    const homeId = teamByAbbr.get(g.home_team.toUpperCase())
+    const awayId = teamByAbbr.get(g.away_team.toUpperCase())
 
-    if (!homeId) {
-      results.push({ slug: '', status: 'error', error: `Unknown home team: ${item.home_team}` })
-      errors++
-      continue
-    }
-    if (!awayId) {
-      results.push({ slug: '', status: 'error', error: `Unknown away team: ${item.away_team}` })
+    if (!homeId || !awayId) {
+      results.push({ game: key, status: 'error', error: `Unknown team(s): ${g.home_team}/${g.away_team}` })
       errors++
       continue
     }
 
-    const slug = generateSlug(homeId, awayId, payload.date)
-
-    // Upsert game row
+    // Upsert game by natural key
     const { data: gameRows, error: gameErr } = await supabase
       .from('games')
       .upsert(
@@ -72,58 +67,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           home_team_id: homeId,
           away_team_id: awayId,
           game_date: payload.date,
-          game_time: item.game_time,
-          slug,
+          game_time: g.game_time,
           status: 'scheduled',
         },
-        { onConflict: 'sport_id,slug' },
+        { onConflict: 'game_date,home_team_id,away_team_id,game_time' },
       )
       .select('id')
 
-    if (gameErr || !gameRows?.length) {
-      results.push({ slug, status: 'error', error: gameErr?.message ?? 'Game upsert returned no id' })
+    if (gameErr || !gameRows.length) {
+      results.push({ game: key, status: 'error', error: gameErr?.message ?? 'Game upsert returned no id' })
       errors++
       continue
     }
 
     const gameId = gameRows[0].id as string
 
-    // Upsert prediction row
-    const { error: predErr } = await supabase
-      .from('predictions')
-      .upsert(
-        {
-          game_id: gameId,
-          model_version: 'v1',
-          moneyline_pick: item.predicted_winner,
-          moneyline_home_pct: item.predicted_home_pct,
-          moneyline_away_pct: item.predicted_home_pct != null
-            ? Math.round((100 - item.predicted_home_pct) * 10) / 10
-            : 50,
-          moneyline_stars: item.ml_stars ?? 0,
-          over_under_line: item.ou_line,
-          ou_rec: item.ou_rec,
-          over_under_stars: item.ou_stars ?? 0,
-          spread_line: item.run_line,
-          spread_pick: item.run_line_rec,
-          spread_stars: item.run_line_stars ?? 0,
-          ...(item.analysis ? { analysis: item.analysis } : {}),
-        },
-        { onConflict: 'game_id,model_version' },
-      )
+    // Source-of-truth: delete all existing recs for this game, then insert new ones
+    const { error: delErr } = await supabase
+      .from('recommendations')
+      .delete()
+      .eq('game_id', gameId)
 
-    if (predErr) {
-      results.push({ slug, status: 'error', error: predErr.message })
+    if (delErr) {
+      results.push({ game: key, status: 'error', error: `Failed to clear recs: ${delErr.message}` })
       errors++
       continue
     }
 
-    results.push({ slug, status: 'upserted' })
+    if (g.recommendations.length > 0) {
+      const insertRows = g.recommendations.map((r) => ({
+        game_id: gameId,
+        market: r.market,
+        pick: r.pick,
+        line: r.line,
+        stars: r.stars,
+      }))
+      const { error: insErr } = await supabase.from('recommendations').insert(insertRows)
+      if (insErr) {
+        results.push({ game: key, status: 'error', error: insErr.message })
+        errors++
+        continue
+      }
+      totalRecs += g.recommendations.length
+    }
+
+    results.push({ game: key, status: 'upserted', recs_written: g.recommendations.length })
     upserted++
   }
 
-  const total = payload.predictions.length
+  const total = payload.games.length
   const status = errors === 0 ? 200 : upserted === 0 ? 500 : 207
-
-  return res.status(status).json({ total, upserted, errors, results })
+  return res.status(status).json({ total, upserted, total_recs: totalRecs, errors, results })
 }

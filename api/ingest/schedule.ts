@@ -2,7 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import {
-  generateSlug,
+  gameKey,
   validateSchedulePayload,
 } from '../../src/lib/predictions/ingest-helpers.js'
 import type { IngestItemResult } from '../../src/types/predictions/index.js'
@@ -31,13 +31,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const supabase = getSupabase()
 
-  // Load MLB team abbr → id map
   const { data: teams, error: teamsErr } = await supabase
     .from('teams')
     .select('id, abbreviation')
     .eq('sport_id', 'mlb')
 
-  if (teamsErr || !teams) {
+  if (teamsErr) {
     return res.status(500).json({ error: 'Failed to load teams' })
   }
 
@@ -48,21 +47,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let errors = 0
 
   for (const game of payload.games) {
+    const key = gameKey(game.home_team, game.away_team, game.game_time)
     const homeId = teamByAbbr.get(game.home_team.toUpperCase())
     const awayId = teamByAbbr.get(game.away_team.toUpperCase())
 
-    if (!homeId) {
-      results.push({ slug: '', status: 'error', error: `Unknown home team: ${game.home_team}` })
+    if (!homeId || !awayId) {
+      results.push({ game: key, status: 'error', error: `Unknown team(s): ${game.home_team}/${game.away_team}` })
       errors++
       continue
     }
-    if (!awayId) {
-      results.push({ slug: '', status: 'error', error: `Unknown away team: ${game.away_team}` })
-      errors++
-      continue
-    }
-
-    const slug = generateSlug(homeId, awayId, payload.date)
 
     const { error: dbErr } = await supabase
       .from('games')
@@ -73,24 +66,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           away_team_id: awayId,
           game_date: payload.date,
           game_time: game.game_time,
-          slug,
           status: 'scheduled',
         },
-        { onConflict: 'sport_id,slug' },
+        { onConflict: 'game_date,home_team_id,away_team_id,game_time' },
       )
 
     if (dbErr) {
-      results.push({ slug, status: 'error', error: dbErr.message })
+      results.push({ game: key, status: 'error', error: dbErr.message })
       errors++
       continue
     }
 
-    results.push({ slug, status: 'upserted' })
+    results.push({ game: key, status: 'upserted' })
     upserted++
   }
 
   const total = payload.games.length
   const status = errors === 0 ? 200 : upserted === 0 ? 500 : 207
-
   return res.status(status).json({ total, upserted, errors, results })
 }

@@ -1,4 +1,4 @@
-import { Outlet, createRootRoute, Link } from '@tanstack/react-router'
+import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { Analytics } from '@vercel/analytics/react'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }

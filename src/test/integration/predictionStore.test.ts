@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 describe('predictionStore', () => {
@@ -6,37 +6,65 @@ describe('predictionStore', () => {
     usePredictionStore.getState().resetFilters()
   })
 
-  it('has correct initial state with localToday dateRange and minStars 1', () => {
-    const state = usePredictionStore.getState()
-    expect(state.sport).toBe('all')
-    expect(state.dateRange).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(state.minStars).toBe(1)
+  it('default sport is "all"', () => {
+    expect(usePredictionStore.getState().sport).toBe('all')
   })
 
-  it('setSport updates sport', () => {
-    usePredictionStore.getState().setSport('nba')
-    expect(usePredictionStore.getState().sport).toBe('nba')
+  it('default markets contain ml, spread, ou', () => {
+    const m = usePredictionStore.getState().markets
+    expect(m.has('ml')).toBe(true)
+    expect(m.has('spread')).toBe(true)
+    expect(m.has('ou')).toBe(true)
+    expect(m.size).toBe(3)
   })
 
-  it('setDateRange accepts YYYY-MM-DD strings', () => {
-    usePredictionStore.getState().setDateRange('2026-04-20')
-    expect(usePredictionStore.getState().dateRange).toBe('2026-04-20')
+  it('default minStars is 1', () => {
+    expect(usePredictionStore.getState().minStars).toBe(1)
   })
 
-  it('setMinStars updates minStars', () => {
-    usePredictionStore.getState().setMinStars(4)
-    expect(usePredictionStore.getState().minStars).toBe(4)
+  it('default sortBy is "stars"', () => {
+    expect(usePredictionStore.getState().sortBy).toBe('stars')
   })
 
-  it('resetFilters resets to initial state', () => {
-    usePredictionStore.getState().setSport('nba')
-    usePredictionStore.getState().setDateRange('2026-04-20')
-    usePredictionStore.getState().setMinStars(4)
-    usePredictionStore.getState().resetFilters()
+  it('toggleMarket removes a present market', () => {
+    usePredictionStore.getState().toggleMarket('ml')
+    expect(usePredictionStore.getState().markets.has('ml')).toBe(false)
+  })
 
-    const state = usePredictionStore.getState()
-    expect(state.sport).toBe('all')
-    expect(state.dateRange).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(state.minStars).toBe(1)
+  it('toggleMarket adds an absent market', () => {
+    usePredictionStore.getState().toggleMarket('ml')
+    usePredictionStore.getState().toggleMarket('ml')
+    expect(usePredictionStore.getState().markets.has('ml')).toBe(true)
+  })
+
+  it('setMinStars clamps to 1-5', () => {
+    usePredictionStore.getState().setMinStars(0)
+    expect(usePredictionStore.getState().minStars).toBe(1)
+    usePredictionStore.getState().setMinStars(7)
+    expect(usePredictionStore.getState().minStars).toBe(5)
+    usePredictionStore.getState().setMinStars(3)
+    expect(usePredictionStore.getState().minStars).toBe(3)
+  })
+
+  it('setSortBy switches between time and stars', () => {
+    usePredictionStore.getState().setSortBy('time')
+    expect(usePredictionStore.getState().sortBy).toBe('time')
+    usePredictionStore.getState().setSortBy('stars')
+    expect(usePredictionStore.getState().sortBy).toBe('stars')
+  })
+
+  it('resetFilters returns to defaults', () => {
+    const s = usePredictionStore.getState()
+    s.setSport('mlb')
+    s.setMinStars(4)
+    s.toggleMarket('ml')
+    s.setSortBy('time')
+    s.resetFilters()
+
+    const after = usePredictionStore.getState()
+    expect(after.sport).toBe('all')
+    expect(after.minStars).toBe(1)
+    expect(after.markets.size).toBe(3)
+    expect(after.sortBy).toBe('stars')
   })
 })

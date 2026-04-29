@@ -2,8 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import {
-  generateSlug,
-  mapResultToBool,
+  gameKey,
   validateResultsPayload,
 } from '../../src/lib/predictions/ingest-helpers.js'
 import type { IngestItemResult } from '../../src/types/predictions/index.js'
@@ -37,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select('id, abbreviation')
     .eq('sport_id', 'mlb')
 
-  if (teamsErr || !teams) {
+  if (teamsErr) {
     return res.status(500).json({ error: 'Failed to load teams' })
   }
 
@@ -48,102 +47,82 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let errors = 0
 
   for (const item of payload.results) {
+    const key = gameKey(item.home_team, item.away_team, item.game_time)
     const homeId = teamByAbbr.get(item.home_team.toUpperCase())
     const awayId = teamByAbbr.get(item.away_team.toUpperCase())
 
-    if (!homeId) {
-      results.push({ slug: '', status: 'error', error: `Unknown home team: ${item.home_team}` })
-      errors++
-      continue
-    }
-    if (!awayId) {
-      results.push({ slug: '', status: 'error', error: `Unknown away team: ${item.away_team}` })
+    if (!homeId || !awayId) {
+      results.push({ game: key, status: 'error', error: `Unknown team(s): ${item.home_team}/${item.away_team}` })
       errors++
       continue
     }
 
-    const slug = generateSlug(homeId, awayId, payload.date)
-
-    // Find the game by slug
+    // Find game
     const { data: gameRows, error: gameFindErr } = await supabase
       .from('games')
       .select('id')
       .eq('sport_id', 'mlb')
-      .eq('slug', slug)
+      .eq('home_team_id', homeId)
+      .eq('away_team_id', awayId)
+      .eq('game_date', payload.date)
+      .eq('game_time', item.game_time)
       .limit(1)
 
-    if (gameFindErr || !gameRows?.length) {
-      results.push({ slug, status: 'error', error: `Game not found for ${slug}; upload prediction or schedule first` })
+    if (gameFindErr || !gameRows.length) {
+      results.push({ game: key, status: 'no_game', error: 'Game not found; ingest schedule/predictions first' })
       errors++
       continue
     }
 
     const gameId = gameRows[0].id as string
 
-    // Update game with final score
+    // Mark game as final (scores no longer stored)
     const { error: gameUpdateErr } = await supabase
       .from('games')
-      .update({
-        home_score: item.actual_home_score,
-        away_score: item.actual_away_score,
-        status: 'final',
-      })
+      .update({ status: 'final' })
       .eq('id', gameId)
 
     if (gameUpdateErr) {
-      results.push({ slug, status: 'error', error: gameUpdateErr.message })
+      results.push({ game: key, status: 'error', error: gameUpdateErr.message })
       errors++
       continue
     }
 
-    // Find the prediction
-    const { data: predRows } = await supabase
-      .from('predictions')
-      .select('id')
-      .eq('game_id', gameId)
-      .eq('model_version', 'v1')
-      .limit(1)
+    // Apply per-market results
+    let recsWritten = 0
+    let perGameErrors = 0
+    for (const r of item.recommendations) {
+      const { data: updRows, error: updErr } = await supabase
+        .from('recommendations')
+        .update({ result: r.result })
+        .eq('game_id', gameId)
+        .eq('market', r.market)
+        .select('market')
+      if (updErr) {
+        results.push({ game: `${key}:${r.market}`, status: 'error', error: updErr.message })
+        errors++
+        perGameErrors++
+        continue
+      }
+      if (updRows.length === 0) {
+        results.push({ game: `${key}:${r.market}`, status: 'no_game', error: 'No matching recommendation row' })
+        errors++
+        perGameErrors++
+        continue
+      }
+      recsWritten++
+    }
 
-    if (!predRows?.length) {
-      // Game score recorded but no prediction to resolve — not an error
-      results.push({ slug, status: 'no_prediction' })
+    if (perGameErrors === 0) {
+      results.push({ game: key, status: 'upserted', recs_written: recsWritten })
       upserted++
-      continue
+    } else {
+      results.push({ game: key, status: 'upserted', recs_written: recsWritten, error: `${perGameErrors} market(s) failed` })
+      // game-level partial: errors already counted at per-market level; do not bump upserted
     }
-
-    const predictionId = predRows[0].id as string
-
-    // Upsert prediction_results with new text columns + legacy boolean dual-write
-    const { error: resultErr } = await supabase
-      .from('prediction_results')
-      .upsert(
-        {
-          prediction_id: predictionId,
-          game_id: gameId,
-          ml_result: item.ml_result,
-          ou_result: item.ou_result,
-          run_line_result: item.run_line_result,
-          // Legacy boolean columns — dual-written for accuracy dashboard compatibility
-          winner_correct: mapResultToBool(item.ml_result),
-          over_under_correct: mapResultToBool(item.ou_result),
-          spread_correct: mapResultToBool(item.run_line_result),
-          resolved_at: new Date().toISOString(),
-        },
-        { onConflict: 'prediction_id' },
-      )
-
-    if (resultErr) {
-      results.push({ slug, status: 'error', error: resultErr.message })
-      errors++
-      continue
-    }
-
-    results.push({ slug, status: 'upserted' })
-    upserted++
   }
 
   const total = payload.results.length
   const status = errors === 0 ? 200 : upserted === 0 ? 500 : 207
-
   return res.status(status).json({ total, upserted, errors, results })
 }

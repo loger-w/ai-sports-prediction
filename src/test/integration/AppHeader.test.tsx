@@ -1,41 +1,23 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-
-const navigateMock = vi.fn()
-
-// Mock TanStack Router
-vi.mock('@tanstack/react-router', () => ({
-  useParams: () => ({ lang: 'en' }),
-  useNavigate: () => navigateMock,
-  Link: ({ children, activeProps, className, ...props }: Record<string, unknown>) => (
-    <a className={className as string} {...props}>{children as React.ReactNode}</a>
-  ),
-}))
-
 import { AppHeader } from '@/components/layout/AppHeader'
 
+vi.mock('@tanstack/react-router', () => ({
+  useParams: () => ({ lang: 'zh' }),
+  useNavigate: () => vi.fn(),
+  Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
+}))
+
 describe('AppHeader', () => {
-  it('shows EN and 中 language toggles', () => {
+  it('renders nav links to predictions and accuracy', () => {
     render(<AppHeader />)
-    expect(screen.getByText('EN')).toBeInTheDocument()
-    expect(screen.getByText('中')).toBeInTheDocument()
+    expect(screen.getByText('今日推薦')).toBeInTheDocument()
+    expect(screen.getByText('準確率')).toBeInTheDocument()
   })
 
-  it('shows nav links', () => {
+  it('does NOT render language toggle', () => {
     render(<AppHeader />)
-    expect(screen.getByText("Today's Picks")).toBeInTheDocument()
-    expect(screen.getByText('Accuracy')).toBeInTheDocument()
-  })
-
-  it('navigates to zh path when language toggle is clicked', async () => {
-    const user = userEvent.setup()
-    render(<AppHeader />)
-    const toggleButton = screen.getByLabelText('Toggle language')
-    await user.click(toggleButton)
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: '/$lang/predictions',
-      params: { lang: 'zh' },
-    })
+    expect(screen.queryByLabelText('Toggle language')).not.toBeInTheDocument()
+    expect(screen.queryByText('EN')).not.toBeInTheDocument()
   })
 })
