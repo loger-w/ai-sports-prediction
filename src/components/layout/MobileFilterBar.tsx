@@ -42,7 +42,7 @@ export function MobileFilterBar() {
               PILL,
               sport === s.id
                 ? 'bg-[rgba(0,229,160,0.12)] text-[#00e5a0] border-[rgba(0,229,160,0.3)]'
-                : 'text-[#4a5568] border-[#1e2733] hover:text-[#a0aec0]',
+                : 'text-[#94a3b8] border-[#1e2733] hover:text-[#e2e8f0]',
             )}
             style={FONT}
           >
@@ -58,7 +58,7 @@ export function MobileFilterBar() {
                 'flex items-center gap-1.5',
                 activeFiltersCount > 0
                   ? 'bg-[rgba(0,229,160,0.12)] text-[#00e5a0] border-[rgba(0,229,160,0.3)]'
-                  : 'text-[#4a5568] border-[#1e2733] hover:text-[#a0aec0]',
+                  : 'text-[#94a3b8] border-[#1e2733] hover:text-[#e2e8f0]',
               )}
               style={FONT}
             >
@@ -87,7 +87,7 @@ export function MobileFilterBar() {
             {/* Markets */}
             <div className="mb-6">
               <div
-                className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3"
+                className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8] mb-3"
                 style={FONT}
               >
                 {t.filter.markets}
@@ -98,7 +98,7 @@ export function MobileFilterBar() {
             {/* Min Stars */}
             <div>
               <div
-                className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3"
+                className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8] mb-3"
                 style={FONT}
               >
                 {t.filter.minStars}
@@ -114,7 +114,7 @@ export function MobileFilterBar() {
                       className="px-4 py-2 rounded-full text-[12px] font-bold tracking-wide transition-all"
                       style={{
                         ...FONT,
-                        color: isActive ? '#fbbf24' : '#4a5568',
+                        color: isActive ? '#fbbf24' : '#94a3b8',
                         background: isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${isActive ? '#fbbf24' : 'rgba(255,255,255,0.08)'}`,
                       }}

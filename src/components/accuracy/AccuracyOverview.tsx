@@ -10,11 +10,11 @@ interface Props {
 function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
   return (
     <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] px-5 py-4 flex flex-col gap-1">
-      <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]" style={FONT}>
+      <span className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8]" style={FONT}>
         {label}
       </span>
       <span className="text-[42px] font-black leading-none" style={{ ...FONT, color }}>{value}</span>
-      <span className="text-[11px] text-[#4a5568]" style={FONT}>{sub}</span>
+      <span className="text-[15px] text-[#94a3b8]" style={FONT}>{sub}</span>
     </div>
   )
 }

@@ -27,7 +27,7 @@ export function SortToggle() {
             data-active={active}
             className={cn(
               'px-3 py-1 text-[12px] font-bold tracking-wide transition-colors',
-              active ? 'bg-[#1e2733] text-[#00e5a0]' : 'text-[#4a5568]',
+              active ? 'bg-[#1e2733] text-[#00e5a0]' : 'text-[#94a3b8]',
             )}
             style={FONT}
           >

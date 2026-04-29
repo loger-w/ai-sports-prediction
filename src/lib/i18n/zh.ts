@@ -50,6 +50,10 @@ export const zh = {
     push: '和',
     void: '無效',
   },
+  dates: {
+    today: '今日',
+    weekdaysShort: ['日', '一', '二', '三', '四', '五', '六'] as const,
+  },
 } as const
 
 export type Translations = typeof zh

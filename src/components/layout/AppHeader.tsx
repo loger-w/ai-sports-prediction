@@ -22,7 +22,7 @@ export function AppHeader() {
           params={{ lang }}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold tracking-widest uppercase transition-colors',
-            'text-[#4a5568] hover:text-[#a0aec0]',
+            'text-[#94a3b8] hover:text-[#e2e8f0]',
           )}
           activeProps={{
             className:
@@ -38,7 +38,7 @@ export function AppHeader() {
           params={{ lang }}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-bold tracking-widest uppercase transition-colors',
-            'text-[#4a5568] hover:text-[#a0aec0]',
+            'text-[#94a3b8] hover:text-[#e2e8f0]',
           )}
           activeProps={{
             className:

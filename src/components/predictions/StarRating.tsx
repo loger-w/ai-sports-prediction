@@ -12,7 +12,7 @@ export function StarRating({ stars, size = 12 }: StarRatingProps) {
           data-star={i < stars ? 'filled' : 'empty'}
           style={{
             fontSize: `${size}px`,
-            color: i < stars ? '#fbbf24' : '#2d3748',
+            color: i < stars ? '#fbbf24' : '#6b7280',
           }}
         >
           ★

@@ -40,7 +40,7 @@ function AccuracyPage() {
   if (isError || !data) {
     return (
       <div className="flex items-center justify-center py-24">
-        <p className="text-[#4a5568] text-sm" style={FONT}>{t.accuracy.noData}</p>
+        <p className="text-[#94a3b8] text-sm" style={FONT}>{t.accuracy.noData}</p>
       </div>
     )
   }
@@ -49,7 +49,7 @@ function AccuracyPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center gap-2">
         <p className="text-[14px] font-bold text-[#00e5a0]" style={FONT}>{t.accuracy.title}</p>
-        <p className="text-[#4a5568] text-sm max-w-xs" style={FONT}>{t.accuracy.noData}</p>
+        <p className="text-[#94a3b8] text-sm max-w-xs" style={FONT}>{t.accuracy.noData}</p>
       </div>
     )
   }
