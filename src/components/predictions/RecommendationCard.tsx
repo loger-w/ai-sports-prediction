@@ -1,8 +1,22 @@
 import { useTranslation } from '@/lib/i18n'
-import type { RecommendationWithGame } from '@/types/predictions/recommendation'
+import type { RecResult, RecommendationWithGame } from '@/types/predictions/recommendation'
 import { StarRating } from './StarRating'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
+
+const RESULT_FG: Record<RecResult, string> = {
+  win: '#00e5a0',
+  loss: '#fc8181',
+  push: '#a0aec0',
+  void: '#94a3b8',
+}
+
+const RESULT_BG: Record<RecResult, string> = {
+  win: 'rgba(0,229,160,0.15)',
+  loss: 'rgba(252,129,129,0.15)',
+  push: 'rgba(160,174,192,0.15)',
+  void: 'rgba(148,163,184,0.15)',
+}
 
 interface Props {
   rec: RecommendationWithGame
@@ -28,21 +42,12 @@ function formatPick(rec: RecommendationWithGame, t: ReturnType<typeof useTransla
   return `${label} ${rec.line}`
 }
 
-function ResultBadge({ result }: { result: 'win' | 'loss' | 'push' | 'void' }) {
+function ResultBadge({ result }: { result: RecResult }) {
   const { t } = useTranslation()
-  const map: Record<typeof result, string> = {
-    win: '#00e5a0', loss: '#fc8181', push: '#a0aec0', void: '#94a3b8',
-  }
-  const bgMap: Record<typeof result, string> = {
-    win: 'rgba(0,229,160,0.15)',
-    loss: 'rgba(252,129,129,0.15)',
-    push: 'rgba(160,174,192,0.15)',
-    void: 'rgba(148,163,184,0.15)',
-  }
   return (
     <span
       className="px-2 py-0.5 rounded-full text-[14px] font-bold tracking-wide"
-      style={{ ...FONT, color: map[result], background: bgMap[result] }}
+      style={{ ...FONT, color: RESULT_FG[result], background: RESULT_BG[result] }}
     >
       {t.result[result]}
     </span>
