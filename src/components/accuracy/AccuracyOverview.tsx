@@ -40,7 +40,7 @@ export function AccuracyOverview({ overall }: Props) {
         color="#00e5a0"
       />
       <StatCard
-        label={t.accuracy.byMarket}
+        label={t.accuracy.pushVoid}
         value={overall.pushes > 0 ? `${overall.pushes}` : '0'}
         sub={t.result.push + ' / ' + t.result.void + ': ' + overall.voids}
         color="#fbbf24"

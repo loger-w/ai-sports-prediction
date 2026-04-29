@@ -94,22 +94,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Apply per-market results
     let recsWritten = 0
+    let perGameErrors = 0
     for (const r of item.recommendations) {
-      const { error: updErr } = await supabase
+      const { data: updRows, error: updErr } = await supabase
         .from('recommendations')
         .update({ result: r.result })
         .eq('game_id', gameId)
         .eq('market', r.market)
+        .select('market')
       if (updErr) {
         results.push({ game: `${key}:${r.market}`, status: 'error', error: updErr.message })
         errors++
+        perGameErrors++
+        continue
+      }
+      if (updRows.length === 0) {
+        results.push({ game: `${key}:${r.market}`, status: 'no_game', error: 'No matching recommendation row' })
+        errors++
+        perGameErrors++
         continue
       }
       recsWritten++
     }
 
-    results.push({ game: key, status: 'upserted', recs_written: recsWritten })
-    upserted++
+    if (perGameErrors === 0) {
+      results.push({ game: key, status: 'upserted', recs_written: recsWritten })
+      upserted++
+    } else {
+      results.push({ game: key, status: 'upserted', recs_written: recsWritten, error: `${perGameErrors} market(s) failed` })
+      // game-level partial: errors already counted at per-market level; do not bump upserted
+    }
   }
 
   const total = payload.results.length

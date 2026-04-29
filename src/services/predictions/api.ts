@@ -99,7 +99,7 @@ export async function fetchDatesWithRecommendations(from: string, to: string): P
 // ── Accuracy ────────────────────────────────────────────────────────────────
 
 export interface AccuracyBucket {
-  total: number                     // resolved (result IS NOT NULL and != 'void')
+  total: number                     // count of all settled rows (any non-null result, including void)
   wins: number
   losses: number
   pushes: number
@@ -182,7 +182,6 @@ export async function fetchAccuracyData(): Promise<AccuracyData> {
 
     add(overall, raw.result)
     add(byMarket[raw.market], raw.result)
-    if (!(raw.stars in byStars)) byStars[raw.stars] = EMPTY_BUCKET()
     add(byStars[raw.stars], raw.result)
 
     if (!dailyMap.has(game.game_date)) dailyMap.set(game.game_date, EMPTY_BUCKET())

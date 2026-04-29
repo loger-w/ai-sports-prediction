@@ -42,6 +42,7 @@ export const zh = {
     record: '戰績',
     totalRecs: '已結算推薦',
     noData: '尚無已結算推薦。比賽結束後再來查看。',
+    pushVoid: '和局 / 無效',
   },
   result: {
     win: '贏',
