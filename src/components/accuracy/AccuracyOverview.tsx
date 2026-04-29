@@ -1,72 +1,48 @@
 import { useTranslation } from '@/lib/i18n'
-import type { AccuracyStat } from '@/services/predictions/api'
+import type { AccuracyBucket } from '@/services/predictions/api'
 
-interface AccuracyOverviewProps {
-  overall: AccuracyStat
+const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
+
+interface Props {
+  overall: AccuracyBucket
 }
 
-const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
-
-// Defined outside component (rerender-no-inline-components)
-function StatCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string
-  value: string
-  sub: string
-  color: string
-}) {
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
   return (
     <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] px-5 py-4 flex flex-col gap-1">
-      <span
-        className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]"
-        style={FONT}
-      >
+      <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]" style={FONT}>
         {label}
       </span>
-      <span
-        className="text-[42px] font-black leading-none"
-        style={{ ...FONT, color }}
-      >
-        {value}
-      </span>
-      <span className="text-[11px] text-[#4a5568]" style={FONT}>
-        {sub}
-      </span>
+      <span className="text-[42px] font-black leading-none" style={{ ...FONT, color }}>{value}</span>
+      <span className="text-[11px] text-[#4a5568]" style={FONT}>{sub}</span>
     </div>
   )
 }
 
-export function AccuracyOverview({ overall }: AccuracyOverviewProps) {
+export function AccuracyOverview({ overall }: Props) {
   const { t } = useTranslation()
-
-  const winRecord = `${overall.winnerCorrect}–${overall.total - overall.winnerCorrect}`
-  const ouRecord =
-    overall.ouTotal > 0
-      ? `${overall.ouCorrect}–${overall.ouTotal - overall.ouCorrect}`
-      : '—'
+  const decided = overall.wins + overall.losses
+  const record = `${overall.wins}-${overall.losses}`
+  const pctText = decided > 0 ? `${overall.pct}%` : '—'
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <StatCard
-        label={t.accuracy.totalGames}
+        label={t.accuracy.totalRecs}
         value={String(overall.total)}
-        sub={t.accuracy.record + ' ' + winRecord}
+        sub={t.accuracy.record + ' ' + record}
         color="#a0aec0"
       />
       <StatCard
-        label={t.accuracy.winnerAccuracy}
-        value={`${overall.winnerPct}%`}
-        sub={winRecord}
+        label={t.accuracy.overall}
+        value={pctText}
+        sub={record}
         color="#00e5a0"
       />
       <StatCard
-        label={t.accuracy.ouAccuracy}
-        value={overall.ouTotal > 0 ? `${overall.ouPct}%` : '—'}
-        sub={ouRecord}
+        label={t.accuracy.byMarket}
+        value={overall.pushes > 0 ? `${overall.pushes}` : '0'}
+        sub={t.result.push + ' / ' + t.result.void + ': ' + overall.voids}
         color="#fbbf24"
       />
     </div>
