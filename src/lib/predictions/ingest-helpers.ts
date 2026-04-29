@@ -151,3 +151,7 @@ export function validateSchedulePayload(body: unknown): SchedulePayload {
 
   return b as unknown as SchedulePayload
 }
+
+export function gameKey(home_team: string, away_team: string, game_time: string): string {
+  return `${home_team}-vs-${away_team}@${game_time}`
+}
