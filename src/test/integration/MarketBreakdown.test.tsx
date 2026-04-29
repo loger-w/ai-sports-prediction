@@ -1,12 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import type { AccuracyBucket } from '@/services/predictions/api'
+import { MarketBreakdown } from '@/components/accuracy/MarketBreakdown'
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ lang: 'zh' }),
 }))
-
-import { MarketBreakdown } from '@/components/accuracy/MarketBreakdown'
-import type { AccuracyBucket } from '@/services/predictions/api'
 
 const empty = (): AccuracyBucket => ({ total: 0, wins: 0, losses: 0, pushes: 0, voids: 0, pct: 0 })
 

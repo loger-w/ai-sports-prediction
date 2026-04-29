@@ -1,14 +1,13 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import type { RecommendationWithGame } from '@/types/predictions/recommendation'
+import { RecommendationCard } from '@/components/predictions/RecommendationCard'
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ lang: 'zh' }),
   useNavigate: () => vi.fn(),
   Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
 }))
-
-import { RecommendationCard } from '@/components/predictions/RecommendationCard'
-import type { RecommendationWithGame } from '@/types/predictions/recommendation'
 
 function makeRec(overrides: Partial<RecommendationWithGame> = {}): RecommendationWithGame {
   const base: RecommendationWithGame = {

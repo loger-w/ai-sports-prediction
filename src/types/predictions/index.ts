@@ -1,6 +1,8 @@
 // src/types/predictions/index.ts
 // Public types for the prediction domain. Old detail-page types removed.
 
+import type { Market, Pick, RecResult } from './recommendation'
+
 export type {
   Market,
   Pick,
@@ -11,8 +13,6 @@ export type {
   RecommendationRow,
   RecommendationWithGame,
 } from './recommendation'
-
-import type { Market, Pick, RecResult } from './recommendation'
 
 // ── Sports / Teams (preserved schema) ────────────────────────────────────────
 

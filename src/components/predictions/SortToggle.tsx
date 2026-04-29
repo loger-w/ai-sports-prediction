@@ -1,10 +1,11 @@
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
-import { usePredictionStore, type SortBy } from '@/stores/predictions/predictionStore'
+import type { SortBy } from '@/stores/predictions/predictionStore'
+import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
-const OPTIONS: Array<{ id: SortBy; key: 'sortByStars' | 'sortByTime' }> = [
+const OPTIONS: { id: SortBy; key: 'sortByStars' | 'sortByTime' }[] = [
   { id: 'stars', key: 'sortByStars' },
   { id: 'time', key: 'sortByTime' },
 ]

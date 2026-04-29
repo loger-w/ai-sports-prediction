@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select('id, abbreviation')
     .eq('sport_id', 'mlb')
 
-  if (teamsErr || !teams) {
+  if (teamsErr) {
     return res.status(500).json({ error: 'Failed to load teams' })
   }
 
@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('game_time', item.game_time)
       .limit(1)
 
-    if (gameFindErr || !gameRows?.length) {
+    if (gameFindErr || !gameRows.length) {
       results.push({ game: key, status: 'no_game', error: 'Game not found; ingest schedule/predictions first' })
       errors++
       continue

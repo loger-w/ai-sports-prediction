@@ -1,9 +1,7 @@
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
-import {
-  usePredictionStore,
-  type PredictionFilters,
-} from '@/stores/predictions/predictionStore'
+import type { PredictionFilters } from '@/stores/predictions/predictionStore'
+import { usePredictionStore } from '@/stores/predictions/predictionStore'
 import { useRecommendationCounts } from '@/hooks/predictions/useDailyRecommendations'
 import { MarketChips } from '@/components/predictions/MarketChips'
 
@@ -88,7 +86,7 @@ export function AppSidebar() {
           style={FONT}
         >
           MLB
-          {counts['mlb'] !== undefined && <CountBadge count={counts['mlb']} />}
+          {'mlb' in counts && <CountBadge count={counts['mlb']} />}
         </button>
       </div>
 

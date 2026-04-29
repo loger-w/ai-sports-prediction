@@ -55,7 +55,6 @@ export async function fetchDailyRecommendations(
   const { data, error } = await q
 
   if (error) throw new Error(error.message)
-  if (!data) return []
 
   const rows = data as unknown as RecommendationWithGame[]
   return rows.slice().sort((a, b) => compareForSort(a, b, filters.sortBy))
@@ -70,13 +69,10 @@ export async function fetchRecommendationCounts(
     .select('market, game:games!inner(sport_id, game_date)')
     .eq('game.game_date', dateRange)
 
-  if (error || !data) return {}
+  if (error) return {}
 
   const counts: Record<string, number> = {}
-  for (const row of data as unknown as Array<{
-    market: string
-    game: { sport_id: string }
-  }>) {
+  for (const row of data as unknown as { market: string; game: { sport_id: string } }[]) {
     const sid = row.game.sport_id
     counts[sid] = (counts[sid] ?? 0) + 1
   }
@@ -91,11 +87,11 @@ export async function fetchDatesWithRecommendations(from: string, to: string): P
     .gte('game.game_date', from)
     .lte('game.game_date', to)
 
-  if (error || !data) return []
+  if (error) return []
 
   const dates = new Set<string>()
-  for (const row of data as unknown as Array<{ game: { game_date: string } }>) {
-    if (row.game?.game_date) dates.add(row.game.game_date)
+  for (const row of data as unknown as { game: { game_date: string } }[]) {
+    dates.add(row.game.game_date)
   }
   return [...dates]
 }
@@ -115,7 +111,7 @@ export interface AccuracyData {
   overall: AccuracyBucket
   byMarket: Record<Market, AccuracyBucket>
   byStars: Record<number, AccuracyBucket>           // 1..5
-  daily: Array<{ date: string; pct: number; total: number }>
+  daily: { date: string; pct: number; total: number }[]
 }
 
 const EMPTY_BUCKET = (): AccuracyBucket => ({
@@ -132,7 +128,7 @@ function add(b: AccuracyBucket, r: RecResult): void {
   if (r === 'win') b.wins++
   else if (r === 'loss') b.losses++
   else if (r === 'push') b.pushes++
-  else if (r === 'void') b.voids++
+  else b.voids++
 }
 
 function pct(b: AccuracyBucket): number {
@@ -152,7 +148,7 @@ export async function fetchAccuracyData(): Promise<AccuracyData> {
     .select('market, stars, result, game:games!inner(game_date)')
     .not('result', 'is', null)
 
-  if (error || !data) {
+  if (error) {
     return {
       overall: EMPTY_BUCKET(),
       byMarket: { ml: EMPTY_BUCKET(), spread: EMPTY_BUCKET(), ou: EMPTY_BUCKET() },
@@ -177,16 +173,17 @@ export async function fetchAccuracyData(): Promise<AccuracyData> {
     market: Market
     stars: number
     result: RecResult
-    game: { game_date: string } | Array<{ game_date: string }>
+    game: { game_date: string } | { game_date: string }[]
   }
 
   for (const raw of data as unknown as Row[]) {
     const game = Array.isArray(raw.game) ? raw.game[0] : raw.game
-    if (!game) continue
+    if (!game.game_date) continue
 
     add(overall, raw.result)
     add(byMarket[raw.market], raw.result)
-    add(byStars[raw.stars] ?? (byStars[raw.stars] = EMPTY_BUCKET()), raw.result)
+    if (!(raw.stars in byStars)) byStars[raw.stars] = EMPTY_BUCKET()
+    add(byStars[raw.stars], raw.result)
 
     if (!dailyMap.has(game.game_date)) dailyMap.set(game.game_date, EMPTY_BUCKET())
     add(dailyMap.get(game.game_date)!, raw.result)

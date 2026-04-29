@@ -1,10 +1,8 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
-import {
-  usePredictionStore,
-  type PredictionFilters,
-} from '@/stores/predictions/predictionStore'
+import type { PredictionFilters } from '@/stores/predictions/predictionStore'
+import { usePredictionStore } from '@/stores/predictions/predictionStore'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from '@/components/ui/sheet'

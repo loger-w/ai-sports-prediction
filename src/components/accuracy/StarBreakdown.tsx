@@ -17,7 +17,7 @@ export function StarBreakdown({ byStars }: Props) {
       </h2>
       <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] divide-y divide-[#1e2733]">
         {STARS.map((s) => {
-          const b = byStars[s] ?? { total: 0, wins: 0, losses: 0, pushes: 0, voids: 0, pct: 0 }
+          const b = byStars[s]
           const decided = b.wins + b.losses
           return (
             <div key={s} className="flex items-center justify-between px-5 py-3">

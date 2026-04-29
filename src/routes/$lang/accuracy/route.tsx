@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { Suspense, lazy } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useTranslation } from '@/lib/i18n'
 import { useAccuracyData } from '@/hooks/predictions/useAccuracyStats'

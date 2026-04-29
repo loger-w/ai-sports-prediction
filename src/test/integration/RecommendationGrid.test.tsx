@@ -1,17 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { UseQueryResult } from '@tanstack/react-query'
+import type { RecommendationWithGame } from '@/types/predictions/recommendation'
+import { RecommendationGrid } from '@/components/predictions/RecommendationGrid'
+import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ lang: 'zh' }),
   useNavigate: () => vi.fn(),
   Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
 }))
-
-import { RecommendationGrid } from '@/components/predictions/RecommendationGrid'
-import { usePredictionStore } from '@/stores/predictions/predictionStore'
-import type { RecommendationWithGame } from '@/types/predictions/recommendation'
 
 function rec(overrides: Partial<RecommendationWithGame> = {}): RecommendationWithGame {
   return {

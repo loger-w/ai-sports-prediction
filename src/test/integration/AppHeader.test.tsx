@@ -1,13 +1,12 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { AppHeader } from '@/components/layout/AppHeader'
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ lang: 'zh' }),
   useNavigate: () => vi.fn(),
   Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
 }))
-
-import { AppHeader } from '@/components/layout/AppHeader'
 
 describe('AppHeader', () => {
   it('renders nav links to predictions and accuracy', () => {

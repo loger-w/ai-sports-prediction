@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select('id, abbreviation')
     .eq('sport_id', 'mlb')
 
-  if (teamsErr || !teams) {
+  if (teamsErr) {
     return res.status(500).json({ error: 'Failed to load teams' })
   }
 
@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       )
       .select('id')
 
-    if (gameErr || !gameRows?.length) {
+    if (gameErr || !gameRows.length) {
       results.push({ game: key, status: 'error', error: gameErr?.message ?? 'Game upsert returned no id' })
       errors++
       continue

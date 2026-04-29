@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { AppSidebar } from '@/components/layout/AppSidebar'
+import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 vi.mock('@tanstack/react-router', () => ({
   useParams: () => ({ lang: 'zh' }),
@@ -11,9 +13,6 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('@/hooks/predictions/useDailyRecommendations', () => ({
   useRecommendationCounts: () => ({ data: { mlb: 8 } }),
 }))
-
-import { AppSidebar } from '@/components/layout/AppSidebar'
-import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 describe('AppSidebar', () => {
   beforeEach(() => {

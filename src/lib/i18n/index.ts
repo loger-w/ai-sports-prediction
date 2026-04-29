@@ -2,7 +2,8 @@
 // Single-locale entry point. `useTranslation` keeps the same API for callers,
 // returning the zh translation object plus a fixed lang='zh'.
 
-import { zh, type Translations } from './zh'
+import type { Translations } from './zh'
+import { zh } from './zh'
 
 export type Lang = 'zh'
 export type { Translations }
