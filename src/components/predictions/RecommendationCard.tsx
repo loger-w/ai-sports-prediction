@@ -15,8 +15,7 @@ function timePart(gameTime: string): string {
 
 function formatPick(rec: RecommendationWithGame, t: ReturnType<typeof useTranslation>['t']): string {
   if (rec.market === 'ml') {
-    const team = rec.pick === 'home' ? rec.game.home_team : rec.game.away_team
-    return team.name_zh
+    return rec.pick === 'home' ? rec.game.home_team.abbreviation : rec.game.away_team.abbreviation
   }
   if (rec.market === 'spread') {
     const abbr =

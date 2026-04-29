@@ -71,10 +71,11 @@ describe('RecommendationCard', () => {
     expect(screen.getByText('小 8.5')).toBeInTheDocument()
   })
 
-  it('shows pick text "LAD" for ml home', () => {
+  it('shows pick text equal to abbreviation for ml home', () => {
     const rec = makeRec({ market: 'ml', pick: 'home', line: null })
     render(<RecommendationCard rec={rec} />)
-    expect(screen.getByText('LAD')).toBeInTheDocument()
+    // LAD shows in both the team header AND as pick text
+    expect(screen.getAllByText('LAD').length).toBeGreaterThanOrEqual(2)
   })
 
   it('shows star count', () => {
