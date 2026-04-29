@@ -11,8 +11,8 @@ const RECS_SELECT = `
   game_id, market, pick, line, stars, result,
   game:games!inner(
     id, sport_id, game_date, game_time, status,
-    home_team:teams!games_home_team_id_fkey(id, sport_id, name_zh, abbreviation, logo_url),
-    away_team:teams!games_away_team_id_fkey(id, sport_id, name_zh, abbreviation, logo_url)
+    home_team:teams!games_home_team_id_fkey(abbreviation, name_zh),
+    away_team:teams!games_away_team_id_fkey(abbreviation, name_zh)
   )
 ` as const
 
@@ -66,13 +66,13 @@ export async function fetchRecommendationCounts(
   // Number of recommendations per sport for the chosen date.
   const { data, error } = await supabase
     .from('recommendations')
-    .select('market, game:games!inner(sport_id, game_date)')
+    .select('game:games!inner(sport_id)')
     .eq('game.game_date', dateRange)
 
   if (error) return {}
 
   const counts: Record<string, number> = {}
-  for (const row of data as unknown as { market: string; game: { sport_id: string } }[]) {
+  for (const row of data as unknown as { game: { sport_id: string } }[]) {
     const sid = row.game.sport_id
     counts[sid] = (counts[sid] ?? 0) + 1
   }

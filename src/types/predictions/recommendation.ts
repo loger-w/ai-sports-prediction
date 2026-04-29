@@ -13,6 +13,12 @@ export interface TeamRow {
   logo_url: string | null
 }
 
+/** Minimal team shape used by the recommendation list/grid UI. */
+export interface TeamCard {
+  abbreviation: string
+  name_zh: string
+}
+
 export interface GameRow {
   id: string
   sport_id: string
@@ -35,7 +41,7 @@ export interface RecommendationRow {
 /** Fully joined row used by the recommendation list/grid UI. */
 export interface RecommendationWithGame extends RecommendationRow {
   game: GameRow & {
-    home_team: TeamRow
-    away_team: TeamRow
+    home_team: TeamCard
+    away_team: TeamCard
   }
 }
