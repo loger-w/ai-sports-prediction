@@ -62,12 +62,21 @@ describe('AppSidebar', () => {
     expect(usePredictionStore.getState().markets.has('spread')).toBe(false)
   })
 
-  it('renders min-star buttons (2+ / 3+ / 4+ / 5)', () => {
+  it('renders min-star buttons (不限 / 2+ / 3+ / 4+ / 5)', () => {
     render(<AppSidebar />)
+    expect(screen.getByText('不限')).toBeInTheDocument()
     expect(screen.getByText('2+')).toBeInTheDocument()
     expect(screen.getByText('3+')).toBeInTheDocument()
     expect(screen.getByText('4+')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('clicking 不限 sets minStars=1', async () => {
+    const user = userEvent.setup()
+    usePredictionStore.getState().setMinStars(4)
+    render(<AppSidebar />)
+    await user.click(screen.getByText('不限'))
+    expect(usePredictionStore.getState().minStars).toBe(1)
   })
 
   it('clicking 4+ sets minStars=4', async () => {

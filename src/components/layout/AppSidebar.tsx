@@ -37,7 +37,7 @@ function SectionDivider() {
   return <div className="border-t border-[#1a2030] my-1" />
 }
 
-const STAR_LEVELS = [2, 3, 4, 5] as const
+const STAR_LEVELS = [1, 2, 3, 4, 5] as const
 
 export function AppSidebar() {
   const { t } = useTranslation()
@@ -108,7 +108,7 @@ export function AppSidebar() {
         <div className="flex flex-wrap gap-1.5 px-2">
           {STAR_LEVELS.map((n) => {
             const isActive = minStars === n
-            const label = n === 5 ? '5' : `${n}+`
+            const label = n === 1 ? t.filter.starsAll : n === 5 ? '5' : `${n}+`
             return (
               <button
                 key={n}

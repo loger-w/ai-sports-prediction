@@ -10,7 +10,7 @@ export const zh = {
     sport: '運動種類',
     allSports: '全部',
     minStars: '最低星數',
-    starsAll: '全部',
+    starsAll: '不限',
     filterButton: '篩選',
     baseball: '棒球',
     leagues: '聯盟',
