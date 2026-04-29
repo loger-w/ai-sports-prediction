@@ -6,29 +6,32 @@ import {
   type PredictionFilters,
 } from '@/stores/predictions/predictionStore'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from '@/components/ui/sheet'
+import { MarketChips } from '@/components/predictions/MarketChips'
+
+const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
+
+const PILL =
+  'px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wide transition-colors border shrink-0'
 
 type Sport = PredictionFilters['sport']
 
+const STAR_LEVELS = [1, 2, 3, 4, 5] as const
+
 export function MobileFilterBar() {
   const { t } = useTranslation()
-  const { sport, minStars, setSport, setMinStars } = usePredictionStore()
+  const { sport, minStars, markets, setSport, setMinStars } = usePredictionStore()
 
   const sports: { id: Sport; label: string }[] = [
     { id: 'all', label: t.filter.allSports },
-    { id: 'nba', label: t.filter.basketball },
     { id: 'mlb', label: t.filter.baseball },
   ]
 
-  const PILL =
-    'px-3 py-1.5 rounded-full text-[12px] font-bold tracking-wide transition-colors border shrink-0'
-
-  const activeFiltersCount = (sport !== 'all' ? 1 : 0) + (minStars > 1 ? 1 : 0)
+  const activeFiltersCount =
+    (sport !== 'all' ? 1 : 0) +
+    (minStars > 1 ? 1 : 0) +
+    (markets.size < 3 ? 1 : 0)
 
   return (
     <div className="md:hidden border-b border-[#1e2733] bg-[#0d1117] px-3 py-2 space-y-2">
@@ -43,13 +46,12 @@ export function MobileFilterBar() {
                 ? 'bg-[rgba(0,229,160,0.12)] text-[#00e5a0] border-[rgba(0,229,160,0.3)]'
                 : 'text-[#4a5568] border-[#1e2733] hover:text-[#a0aec0]',
             )}
-            style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+            style={FONT}
           >
             {s.label}
           </button>
         ))}
 
-        {/* Advanced filters trigger */}
         <Sheet>
           <SheetTrigger asChild>
             <button
@@ -60,7 +62,7 @@ export function MobileFilterBar() {
                   ? 'bg-[rgba(0,229,160,0.12)] text-[#00e5a0] border-[rgba(0,229,160,0.3)]'
                   : 'text-[#4a5568] border-[#1e2733] hover:text-[#a0aec0]',
               )}
-              style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+              style={FONT}
             >
               <SlidersHorizontal size={12} />
               {t.filter.filterButton}
@@ -78,36 +80,48 @@ export function MobileFilterBar() {
             <SheetHeader className="pb-4">
               <SheetTitle
                 className="text-left text-[#a0aec0]"
-                style={{ fontFamily: 'var(--font-barlow-condensed)', letterSpacing: '0.1em' }}
+                style={{ ...FONT, letterSpacing: '0.1em' }}
               >
                 {t.filter.filterButton}
               </SheetTitle>
             </SheetHeader>
 
+            {/* Markets */}
+            <div className="mb-6">
+              <div
+                className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3"
+                style={FONT}
+              >
+                {t.filter.markets}
+              </div>
+              <MarketChips />
+            </div>
+
             {/* Min Stars */}
             <div>
               <div
                 className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3"
-                style={{ fontFamily: 'var(--font-barlow-condensed)' }}
+                style={FONT}
               >
                 {t.filter.minStars}
               </div>
               <div className="flex gap-2 flex-wrap">
-                {[1, 2, 3, 4, 5].map((n) => {
+                {STAR_LEVELS.map((n) => {
                   const isActive = minStars === n
+                  const label = n === 1 ? t.filter.starsAll : n === 5 ? '5' : `${n}+`
                   return (
                     <button
                       key={n}
                       onClick={() => setMinStars(n)}
                       className="px-4 py-2 rounded-full text-[12px] font-bold tracking-wide transition-all"
                       style={{
-                        fontFamily: 'var(--font-barlow-condensed)',
+                        ...FONT,
                         color: isActive ? '#fbbf24' : '#4a5568',
                         background: isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${isActive ? '#fbbf24' : 'rgba(255,255,255,0.08)'}`,
                       }}
                     >
-                      {n === 1 ? 'All' : `${n}+ ★`}
+                      {label}
                     </button>
                   )
                 })}
