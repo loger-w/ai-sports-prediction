@@ -39,7 +39,10 @@ const STAR_LEVELS = [1, 2, 3, 4, 5] as const
 
 export function AppSidebar() {
   const { t } = useTranslation()
-  const { sport, minStars, setSport, setMinStars } = usePredictionStore()
+  const sport = usePredictionStore((s) => s.sport)
+  const minStars = usePredictionStore((s) => s.minStars)
+  const setSport = usePredictionStore((s) => s.setSport)
+  const setMinStars = usePredictionStore((s) => s.setMinStars)
   const { data: counts = {} } = useRecommendationCounts()
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
   const category = categoryOf(sport)

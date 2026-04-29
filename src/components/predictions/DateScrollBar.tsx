@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import dayjs from 'dayjs'
 import { CalendarDots } from '@phosphor-icons/react'
 import { localToday } from '@/lib/timezone'
@@ -26,17 +27,134 @@ function getDateOpacity(date: string, todayStr: string): number {
   return 0.3
 }
 
+function formatMonth(d: dayjs.Dayjs): string {
+  return `${d.year()}年${d.month() + 1}月`
+}
+
+interface DateChipProps {
+  date: string
+  isToday: boolean
+  isSelected: boolean
+  hasGames: boolean
+  opacity: number
+  todayLabel: string
+  weekdayLabel: string
+  dayNum: number
+  buttonRef?: RefObject<HTMLButtonElement | null>
+  onSelect: (date: string) => void
+}
+
+const DateChip = memo(function DateChip({
+  date,
+  isToday,
+  isSelected,
+  hasGames,
+  opacity,
+  todayLabel,
+  weekdayLabel,
+  dayNum,
+  buttonRef,
+  onSelect,
+}: DateChipProps) {
+  return (
+    <button
+      ref={buttonRef}
+      onClick={() => onSelect(date)}
+      className="flex-shrink-0 relative flex flex-col items-center justify-center rounded-[6px] min-w-[44px] h-[44px]"
+      style={{
+        background: isToday
+          ? '#00e5a0'
+          : isSelected
+            ? 'rgba(255,255,255,0.1)'
+            : 'rgba(255,255,255,0.04)',
+        boxShadow: isToday ? '0 0 12px rgba(0,229,160,0.3)' : undefined,
+        opacity,
+      }}
+    >
+      <span
+        style={{
+          ...FONT,
+          fontSize: '10px',
+          fontWeight: 700,
+          color: isToday ? '#0d1117' : '#a0aec0',
+          letterSpacing: '0.05em',
+          lineHeight: 1,
+        }}
+      >
+        {isToday ? todayLabel : weekdayLabel}
+      </span>
+      <span
+        style={{
+          ...FONT,
+          fontSize: '15px',
+          fontWeight: isToday ? 900 : 700,
+          color: isToday ? '#0d1117' : '#a0aec0',
+          lineHeight: 1.2,
+        }}
+      >
+        {dayNum}
+      </span>
+      {hasGames && !isToday && (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: '2px',
+            width: '3px',
+            height: '3px',
+            borderRadius: '50%',
+            background: '#fbbf24',
+          }}
+        />
+      )}
+    </button>
+  )
+})
+
+interface CalendarDayProps {
+  dateStr: string
+  dayNum: number
+  isSelected: boolean
+  isToday: boolean
+  onSelect: (dateStr: string) => void
+}
+
+const CalendarDay = memo(function CalendarDay({
+  dateStr,
+  dayNum,
+  isSelected,
+  isToday,
+  onSelect,
+}: CalendarDayProps) {
+  return (
+    <button
+      onClick={() => onSelect(dateStr)}
+      style={{
+        ...FONT,
+        fontSize: '11px',
+        fontWeight: isToday || isSelected ? 700 : 400,
+        color: isSelected ? '#0d1117' : isToday ? '#00e5a0' : '#6b7280',
+        background: isSelected ? '#00e5a0' : 'transparent',
+        borderRadius: '4px',
+        padding: '4px 0',
+        textAlign: 'center',
+      }}
+    >
+      {dayNum}
+    </button>
+  )
+})
+
 export function DateScrollBar() {
   const { t } = useTranslation()
-  const { dateRange, setDateRange } = usePredictionStore()
+  const dateRange = usePredictionStore((s) => s.dateRange)
+  const setDateRange = usePredictionStore((s) => s.setDateRange)
   const todayStr = localToday()
-  const formatMonth = (d: dayjs.Dayjs) => `${d.year()}年${d.month() + 1}月`
-  const dates = buildDateRange(todayStr)
+  const dates = useMemo(() => buildDateRange(todayStr), [todayStr])
   const from = dates[0]
   const to = dates[dates.length - 1]
 
   const { data: datesWithRecs = [] } = useDatesWithRecommendations(from, to)
-  const datesWithGamesSet = new Set(datesWithRecs)
+  const datesWithGamesSet = useMemo(() => new Set(datesWithRecs), [datesWithRecs])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const todayRef = useRef<HTMLButtonElement>(null)
@@ -59,10 +177,13 @@ export function DateScrollBar() {
   const firstDay = calendarMonth.startOf('month').day() // 0=Sun
   const daysInMonth = calendarMonth.daysInMonth()
 
-  function handleCalendarSelect(dateStr: string) {
-    setDateRange(dateStr)
-    setCalendarOpen(false)
-  }
+  const handleCalendarSelect = useCallback(
+    (dateStr: string) => {
+      setDateRange(dateStr)
+      setCalendarOpen(false)
+    },
+    [setDateRange],
+  )
 
   return (
     <div className="relative mb-1">
@@ -90,57 +211,19 @@ export function DateScrollBar() {
             const d = dayjs(date)
 
             return (
-              <button
+              <DateChip
                 key={date}
-                ref={isToday ? todayRef : undefined}
-                onClick={() => setDateRange(date)}
-                className="flex-shrink-0 relative flex flex-col items-center justify-center rounded-[6px] min-w-[44px] h-[44px]"
-                style={{
-                  background: isToday
-                    ? '#00e5a0'
-                    : isSelected
-                      ? 'rgba(255,255,255,0.1)'
-                      : 'rgba(255,255,255,0.04)',
-                  boxShadow: isToday ? '0 0 12px rgba(0,229,160,0.3)' : undefined,
-                  opacity,
-                }}
-              >
-                <span
-                  style={{
-                    ...FONT,
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: isToday ? '#0d1117' : '#a0aec0',
-                    letterSpacing: '0.05em',
-                    lineHeight: 1,
-                  }}
-                >
-                  {isToday ? t.dates.today : t.dates.weekdaysShort[d.day()]}
-                </span>
-                <span
-                  style={{
-                    ...FONT,
-                    fontSize: '15px',
-                    fontWeight: isToday ? 900 : 700,
-                    color: isToday ? '#0d1117' : '#a0aec0',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {d.date()}
-                </span>
-                {hasGames && !isToday && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: '2px',
-                      width: '3px',
-                      height: '3px',
-                      borderRadius: '50%',
-                      background: '#fbbf24',
-                    }}
-                  />
-                )}
-              </button>
+                date={date}
+                isToday={isToday}
+                isSelected={isSelected}
+                hasGames={hasGames}
+                opacity={opacity}
+                todayLabel={t.dates.today}
+                weekdayLabel={t.dates.weekdaysShort[d.day()]}
+                dayNum={d.date()}
+                buttonRef={isToday ? todayRef : undefined}
+                onSelect={setDateRange}
+              />
             )
           })}
         </div>
@@ -209,22 +292,14 @@ export function DateScrollBar() {
               const isSelected = dateStr === dateRange
               const isToday = dateStr === todayStr
               return (
-                <button
+                <CalendarDay
                   key={dayNum}
-                  onClick={() => handleCalendarSelect(dateStr)}
-                  style={{
-                    ...FONT,
-                    fontSize: '11px',
-                    fontWeight: isToday || isSelected ? 700 : 400,
-                    color: isSelected ? '#0d1117' : isToday ? '#00e5a0' : '#6b7280',
-                    background: isSelected ? '#00e5a0' : 'transparent',
-                    borderRadius: '4px',
-                    padding: '4px 0',
-                    textAlign: 'center',
-                  }}
-                >
-                  {dayNum}
-                </button>
+                  dateStr={dateStr}
+                  dayNum={dayNum}
+                  isSelected={isSelected}
+                  isToday={isToday}
+                  onSelect={handleCalendarSelect}
+                />
               )
             })}
           </div>

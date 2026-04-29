@@ -17,14 +17,16 @@ export const Route = createFileRoute('/$lang/accuracy')({
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
+const SKELETON_ROW = [0, 1, 2] as const
+
 function PageSkeleton() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-[10px] bg-[#1e2733]" />)}
+        {SKELETON_ROW.map((i) => <Skeleton key={i} className="h-28 rounded-[10px] bg-[#1e2733]" />)}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-32 rounded-[10px] bg-[#1e2733]" />)}
+        {SKELETON_ROW.map((i) => <Skeleton key={i} className="h-32 rounded-[10px] bg-[#1e2733]" />)}
       </div>
       <Skeleton className="h-[260px] rounded-[10px] bg-[#1e2733]" />
     </div>

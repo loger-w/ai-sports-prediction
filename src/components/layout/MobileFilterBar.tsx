@@ -19,7 +19,11 @@ const STAR_LEVELS = [1, 2, 3, 4, 5] as const
 
 export function MobileFilterBar() {
   const { t } = useTranslation()
-  const { sport, minStars, markets, setSport, setMinStars } = usePredictionStore()
+  const sport = usePredictionStore((s) => s.sport)
+  const minStars = usePredictionStore((s) => s.minStars)
+  const markets = usePredictionStore((s) => s.markets)
+  const setSport = usePredictionStore((s) => s.setSport)
+  const setMinStars = usePredictionStore((s) => s.setMinStars)
 
   const sports: { id: Sport; label: string }[] = [
     { id: 'all', label: t.filter.allSports },

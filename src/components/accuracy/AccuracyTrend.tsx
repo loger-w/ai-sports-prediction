@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import ReactApexChart from 'react-apexcharts'
 import { useTranslation } from '@/lib/i18n'
 import type { AccuracyData } from '@/services/predictions/api'
@@ -10,26 +11,30 @@ interface Props {
 
 export function AccuracyTrend({ daily }: Props) {
   const { t } = useTranslation()
-  const series = [
-    { name: t.accuracy.overall, data: daily.map((d) => d.pct) },
-  ]
-  const options = {
-    chart: { type: 'line' as const, toolbar: { show: false }, background: 'transparent' },
-    theme: { mode: 'dark' as const },
-    xaxis: {
-      categories: daily.map((d) => d.date),
-      labels: { style: { colors: '#94a3b8', fontFamily: 'var(--font-barlow-condensed)' } },
-    },
-    yaxis: {
-      min: 0, max: 100,
-      labels: { style: { colors: '#94a3b8', fontFamily: 'var(--font-barlow-condensed)' } },
-    },
-    colors: ['#00e5a0'],
-    stroke: { width: 2, curve: 'smooth' as const },
-    grid: { borderColor: '#1e2733' },
-    tooltip: { theme: 'dark' },
-    dataLabels: { enabled: false },
-  }
+  const series = useMemo(
+    () => [{ name: t.accuracy.overall, data: daily.map((d) => d.pct) }],
+    [daily, t],
+  )
+  const options = useMemo(
+    () => ({
+      chart: { type: 'line' as const, toolbar: { show: false }, background: 'transparent' },
+      theme: { mode: 'dark' as const },
+      xaxis: {
+        categories: daily.map((d) => d.date),
+        labels: { style: { colors: '#94a3b8', fontFamily: 'var(--font-barlow-condensed)' } },
+      },
+      yaxis: {
+        min: 0, max: 100,
+        labels: { style: { colors: '#94a3b8', fontFamily: 'var(--font-barlow-condensed)' } },
+      },
+      colors: ['#00e5a0'],
+      stroke: { width: 2, curve: 'smooth' as const },
+      grid: { borderColor: '#1e2733' },
+      tooltip: { theme: 'dark' },
+      dataLabels: { enabled: false },
+    }),
+    [daily],
+  )
 
   return (
     <div>

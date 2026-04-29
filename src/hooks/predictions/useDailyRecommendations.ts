@@ -7,7 +7,11 @@ import {
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
 export function useDailyRecommendations() {
-  const { sport, dateRange, markets, minStars, sortBy } = usePredictionStore()
+  const sport = usePredictionStore((s) => s.sport)
+  const dateRange = usePredictionStore((s) => s.dateRange)
+  const markets = usePredictionStore((s) => s.markets)
+  const minStars = usePredictionStore((s) => s.minStars)
+  const sortBy = usePredictionStore((s) => s.sortBy)
   const marketArr = [...markets]
 
   return useQuery({
