@@ -12,7 +12,7 @@ export function StarBreakdown({ byStars }: Props) {
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3" style={FONT}>
+      <h2 className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8] mb-3" style={FONT}>
         {t.accuracy.byStars}
       </h2>
       <div className="rounded-[10px] border border-[#1e2733] bg-[#161b22] divide-y divide-[#1e2733]">
@@ -25,7 +25,7 @@ export function StarBreakdown({ byStars }: Props) {
               <span className="text-[20px] font-black text-[#00e5a0]" style={FONT}>
                 {decided > 0 ? `${b.pct}%` : '—'}
               </span>
-              <span className="text-[10px] text-[#3a4a5a]" style={FONT}>
+              <span className="text-[15px] text-[#94a3b8]" style={FONT}>
                 {b.wins}-{b.losses}
               </span>
             </div>

@@ -25,7 +25,7 @@ export function MarketChips() {
               'px-2.5 py-1 rounded-full text-[12px] font-bold tracking-wide border transition-colors',
               active
                 ? 'bg-[rgba(0,229,160,0.15)] text-[#00e5a0] border-[rgba(0,229,160,0.3)]'
-                : 'text-[#4a5568] border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] hover:text-[#a0aec0]',
+                : 'text-[#94a3b8] border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] hover:text-[#e2e8f0]',
             )}
             style={FONT}
           >

@@ -22,7 +22,7 @@ export function MarketBreakdown({ byMarket }: Props) {
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-3" style={FONT}>
+      <h2 className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8] mb-3" style={FONT}>
         {t.accuracy.byMarket}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -31,14 +31,14 @@ export function MarketBreakdown({ byMarket }: Props) {
           const decided = b.wins + b.losses
           return (
             <div key={m} className="rounded-[10px] border border-[#1e2733] bg-[#161b22] px-5 py-4 space-y-3">
-              <span className="text-[11px] font-black tracking-[0.2em] uppercase text-[#00e5a0]" style={FONT}>
+              <span className="text-[15px] font-black tracking-[0.2em] uppercase text-[#00e5a0]" style={FONT}>
                 {t.market[m]}
               </span>
               <div className="flex items-baseline justify-between">
                 <span className="text-[28px] font-black text-[#00e5a0]" style={FONT}>
                   {decided > 0 ? `${b.pct}%` : '—'}
                 </span>
-                <span className="text-[10px] text-[#3a4a5a]" style={FONT}>
+                <span className="text-[15px] text-[#94a3b8]" style={FONT}>
                   {b.wins}-{b.losses}
                   {b.pushes > 0 ? ` · ${b.pushes}和` : ''}
                 </span>

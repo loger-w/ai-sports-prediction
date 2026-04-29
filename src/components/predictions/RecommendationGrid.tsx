@@ -55,7 +55,7 @@ export function RecommendationGrid({ data, isLoading, isError, refetch }: GridPr
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-        <p className="text-[#4a5568] text-sm" style={FONT}>Failed to load.</p>
+        <p className="text-[#94a3b8] text-sm" style={FONT}>Failed to load.</p>
         <button
           onClick={() => refetch()}
           className="px-4 py-2 rounded text-[12px] font-bold tracking-wide bg-[rgba(0,229,160,0.1)] text-[#00e5a0] border border-[rgba(0,229,160,0.25)] hover:brightness-110 transition-all"
@@ -71,7 +71,7 @@ export function RecommendationGrid({ data, isLoading, isError, refetch }: GridPr
     const filtered = sport !== 'all' || minStars > 1 || markets.size < 3
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-        <p className="text-[#4a5568] text-sm max-w-xs" style={FONT}>
+        <p className="text-[#94a3b8] text-sm max-w-xs" style={FONT}>
           {filtered ? t.predictions.noResults : t.predictions.noData}
         </p>
         {filtered ? (

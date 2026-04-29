@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarDots } from '@phosphor-icons/react'
 import { localToday } from '@/lib/timezone'
+import { useTranslation } from '@/lib/i18n'
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 import { useDatesWithRecommendations } from '@/hooks/predictions/useDatesWithRecommendations'
 
@@ -26,8 +27,10 @@ function getDateOpacity(date: string, todayStr: string): number {
 }
 
 export function DateScrollBar() {
+  const { t } = useTranslation()
   const { dateRange, setDateRange } = usePredictionStore()
   const todayStr = localToday()
+  const formatMonth = (d: dayjs.Dayjs) => `${d.year()}年${d.month() + 1}月`
   const dates = buildDateRange(todayStr)
   const from = dates[0]
   const to = dates[dates.length - 1]
@@ -50,7 +53,7 @@ export function DateScrollBar() {
     }
   }, [])
 
-  const displayMonth = dayjs(dateRange).format('MMMM YYYY').toUpperCase()
+  const displayMonth = formatMonth(dayjs(dateRange))
 
   // Calendar popup: build days grid for calendarMonth
   const firstDay = calendarMonth.startOf('month').day() // 0=Sun
@@ -105,14 +108,14 @@ export function DateScrollBar() {
                 <span
                   style={{
                     ...FONT,
-                    fontSize: '8px',
+                    fontSize: '10px',
                     fontWeight: 700,
                     color: isToday ? '#0d1117' : '#a0aec0',
                     letterSpacing: '0.05em',
                     lineHeight: 1,
                   }}
                 >
-                  {isToday ? 'TODAY' : d.format('ddd').toUpperCase()}
+                  {isToday ? t.dates.today : t.dates.weekdaysShort[d.day()]}
                 </span>
                 <span
                   style={{
@@ -147,10 +150,10 @@ export function DateScrollBar() {
       <div
         style={{
           ...FONT,
-          fontSize: '9px',
+          fontSize: '14px',
           fontWeight: 600,
           letterSpacing: '0.12em',
-          color: '#2d3748',
+          color: '#94a3b8',
           marginTop: '4px',
           paddingLeft: '44px',
         }}
@@ -168,17 +171,17 @@ export function DateScrollBar() {
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
-              className="w-6 h-6 rounded flex items-center justify-center text-[#4a5568] hover:text-[#a0aec0]"
+              className="w-6 h-6 rounded flex items-center justify-center text-[#94a3b8] hover:text-[#e2e8f0]"
               style={FONT}
             >
               ‹
             </button>
-            <span style={{ ...FONT, fontSize: '12px', fontWeight: 700, color: '#a0aec0', letterSpacing: '0.08em' }}>
-              {calendarMonth.format('MMMM YYYY').toUpperCase()}
+            <span style={{ ...FONT, fontSize: '14px', fontWeight: 700, color: '#a0aec0', letterSpacing: '0.08em' }}>
+              {formatMonth(calendarMonth)}
             </span>
             <button
               onClick={() => setCalendarMonth((m) => m.add(1, 'month'))}
-              className="w-6 h-6 rounded flex items-center justify-center text-[#4a5568] hover:text-[#a0aec0]"
+              className="w-6 h-6 rounded flex items-center justify-center text-[#94a3b8] hover:text-[#e2e8f0]"
               style={FONT}
             >
               ›
@@ -187,8 +190,8 @@ export function DateScrollBar() {
 
           {/* Day headers */}
           <div className="grid grid-cols-7 mb-1">
-            {['S','M','T','W','T','F','S'].map((d, i) => (
-              <div key={i} style={{ ...FONT, fontSize: '9px', color: '#3a4a5a', textAlign: 'center', padding: '2px 0' }}>
+            {t.dates.weekdaysShort.map((d, i) => (
+              <div key={i} style={{ ...FONT, fontSize: '14px', color: '#94a3b8', textAlign: 'center', padding: '2px 0' }}>
                 {d}
               </div>
             ))}

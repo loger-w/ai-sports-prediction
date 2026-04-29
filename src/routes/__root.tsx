@@ -7,13 +7,13 @@ function RootErrorComponent({ error, reset }: { error: Error; reset: () => void 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
       <div className="text-center space-y-4 px-6">
-        <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]" style={FONT}>
+        <p className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8]" style={FONT}>
           Error
         </p>
         <p className="text-[28px] font-black text-[#00e5a0]" style={FONT}>
           Something went wrong
         </p>
-        <p className="text-[#4a5568] text-sm max-w-sm mx-auto" style={FONT}>
+        <p className="text-[#94a3b8] text-sm max-w-sm mx-auto" style={FONT}>
           {error.message}
         </p>
         <button
@@ -32,13 +32,13 @@ function RootNotFoundComponent() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
       <div className="text-center space-y-4 px-6">
-        <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a]" style={FONT}>
+        <p className="text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8]" style={FONT}>
           404
         </p>
         <p className="text-[28px] font-black text-[#00e5a0]" style={FONT}>
           Page Not Found
         </p>
-        <p className="text-[#4a5568] text-sm max-w-xs mx-auto" style={FONT}>
+        <p className="text-[#94a3b8] text-sm max-w-xs mx-auto" style={FONT}>
           The page you're looking for doesn't exist.
         </p>
         <Link

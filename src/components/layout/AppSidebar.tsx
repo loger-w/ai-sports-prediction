@@ -8,10 +8,10 @@ import { MarketChips } from '@/components/predictions/MarketChips'
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
 const SECTION_TITLE =
-  'text-[12px] font-bold tracking-[0.2em] uppercase text-[#3a4a5a] mb-2 px-2'
+  'text-[14px] font-bold tracking-[0.2em] uppercase text-[#94a3b8] mb-2 px-2'
 
 const SIDEBAR_ITEM =
-  'flex items-center gap-2 w-full px-2 py-1.5 rounded text-[15px] font-semibold tracking-wide transition-colors cursor-pointer text-[#4a5568] hover:text-[#a0aec0]'
+  'flex items-center gap-2 w-full px-2 py-1.5 rounded text-[15px] font-semibold tracking-wide transition-colors cursor-pointer text-[#94a3b8] hover:text-[#e2e8f0]'
 
 const SIDEBAR_ITEM_ACTIVE = 'bg-[rgba(0,229,160,0.1)] text-[#00e5a0]'
 
@@ -114,7 +114,7 @@ export function AppSidebar() {
                 className="px-2 py-1 rounded text-[14px] font-bold tracking-wide transition-all"
                 style={{
                   ...FONT,
-                  color: isActive ? '#fbbf24' : '#4a5568',
+                  color: isActive ? '#fbbf24' : '#94a3b8',
                   background: isActive ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${isActive ? '#fbbf24' : 'transparent'}`,
                 }}
