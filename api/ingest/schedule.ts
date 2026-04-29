@@ -1,17 +1,21 @@
 /// <reference types="node" />
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
   gameKey,
   validateSchedulePayload,
 } from '../../src/lib/predictions/ingest-helpers.js'
 import type { IngestItemResult } from '../../src/types/predictions/index.js'
 
-function getSupabase() {
+let cachedSupabase: SupabaseClient | null = null
+
+function getSupabase(): SupabaseClient {
+  if (cachedSupabase) return cachedSupabase
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-  return createClient(url, key)
+  cachedSupabase = createClient(url, key)
+  return cachedSupabase
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -42,43 +46,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const teamByAbbr = new Map(teams.map((t) => [t.abbreviation.toUpperCase(), t.id as string]))
 
-  const results: IngestItemResult[] = []
+  const results: IngestItemResult[] = await Promise.all(
+    payload.games.map(async (game): Promise<IngestItemResult> => {
+      const key = gameKey(game.home_team, game.away_team, game.game_time)
+      const homeId = teamByAbbr.get(game.home_team.toUpperCase())
+      const awayId = teamByAbbr.get(game.away_team.toUpperCase())
+
+      if (!homeId || !awayId) {
+        return { game: key, status: 'error', error: `Unknown team(s): ${game.home_team}/${game.away_team}` }
+      }
+
+      const { error: dbErr } = await supabase
+        .from('games')
+        .upsert(
+          {
+            sport_id: 'mlb',
+            home_team_id: homeId,
+            away_team_id: awayId,
+            game_date: payload.date,
+            game_time: game.game_time,
+            status: 'scheduled',
+          },
+          { onConflict: 'game_date,home_team_id,away_team_id,game_time' },
+        )
+
+      if (dbErr) {
+        return { game: key, status: 'error', error: dbErr.message }
+      }
+
+      return { game: key, status: 'upserted' }
+    }),
+  )
+
   let upserted = 0
   let errors = 0
-
-  for (const game of payload.games) {
-    const key = gameKey(game.home_team, game.away_team, game.game_time)
-    const homeId = teamByAbbr.get(game.home_team.toUpperCase())
-    const awayId = teamByAbbr.get(game.away_team.toUpperCase())
-
-    if (!homeId || !awayId) {
-      results.push({ game: key, status: 'error', error: `Unknown team(s): ${game.home_team}/${game.away_team}` })
-      errors++
-      continue
-    }
-
-    const { error: dbErr } = await supabase
-      .from('games')
-      .upsert(
-        {
-          sport_id: 'mlb',
-          home_team_id: homeId,
-          away_team_id: awayId,
-          game_date: payload.date,
-          game_time: game.game_time,
-          status: 'scheduled',
-        },
-        { onConflict: 'game_date,home_team_id,away_team_id,game_time' },
-      )
-
-    if (dbErr) {
-      results.push({ game: key, status: 'error', error: dbErr.message })
-      errors++
-      continue
-    }
-
-    results.push({ game: key, status: 'upserted' })
-    upserted++
+  for (const r of results) {
+    if (r.status === 'upserted') upserted++
+    else errors++
   }
 
   const total = payload.games.length

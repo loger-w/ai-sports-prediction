@@ -1,17 +1,26 @@
 /// <reference types="node" />
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
   gameKey,
   validatePredictionsPayload,
 } from '../../src/lib/predictions/ingest-helpers.js'
 import type { IngestItemResult } from '../../src/types/predictions/index.js'
 
-function getSupabase() {
+let cachedSupabase: SupabaseClient | null = null
+
+function getSupabase(): SupabaseClient {
+  if (cachedSupabase) return cachedSupabase
   const url = process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-  return createClient(url, key)
+  cachedSupabase = createClient(url, key)
+  return cachedSupabase
+}
+
+interface GameOutcome {
+  result: IngestItemResult
+  recsWritten: number
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -42,77 +51,89 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const teamByAbbr = new Map(teams.map((t) => [t.abbreviation.toUpperCase(), t.id as string]))
 
-  const results: IngestItemResult[] = []
+  const outcomes: GameOutcome[] = await Promise.all(
+    payload.games.map(async (g): Promise<GameOutcome> => {
+      const key = gameKey(g.home_team, g.away_team, g.game_time)
+      const homeId = teamByAbbr.get(g.home_team.toUpperCase())
+      const awayId = teamByAbbr.get(g.away_team.toUpperCase())
+
+      if (!homeId || !awayId) {
+        return {
+          result: { game: key, status: 'error', error: `Unknown team(s): ${g.home_team}/${g.away_team}` },
+          recsWritten: 0,
+        }
+      }
+
+      const { data: gameRows, error: gameErr } = await supabase
+        .from('games')
+        .upsert(
+          {
+            sport_id: 'mlb',
+            home_team_id: homeId,
+            away_team_id: awayId,
+            game_date: payload.date,
+            game_time: g.game_time,
+            status: 'scheduled',
+          },
+          { onConflict: 'game_date,home_team_id,away_team_id,game_time' },
+        )
+        .select('id')
+
+      if (gameErr || !gameRows.length) {
+        return {
+          result: { game: key, status: 'error', error: gameErr?.message ?? 'Game upsert returned no id' },
+          recsWritten: 0,
+        }
+      }
+
+      const gameId = gameRows[0].id as string
+
+      // Source-of-truth: delete all existing recs for this game, then insert new ones
+      const { error: delErr } = await supabase
+        .from('recommendations')
+        .delete()
+        .eq('game_id', gameId)
+
+      if (delErr) {
+        return {
+          result: { game: key, status: 'error', error: `Failed to clear recs: ${delErr.message}` },
+          recsWritten: 0,
+        }
+      }
+
+      if (g.recommendations.length > 0) {
+        const insertRows = g.recommendations.map((r) => ({
+          game_id: gameId,
+          market: r.market,
+          pick: r.pick,
+          line: r.line,
+          stars: r.stars,
+        }))
+        const { error: insErr } = await supabase.from('recommendations').insert(insertRows)
+        if (insErr) {
+          return {
+            result: { game: key, status: 'error', error: insErr.message },
+            recsWritten: 0,
+          }
+        }
+      }
+
+      return {
+        result: { game: key, status: 'upserted', recs_written: g.recommendations.length },
+        recsWritten: g.recommendations.length,
+      }
+    }),
+  )
+
   let upserted = 0
   let totalRecs = 0
   let errors = 0
-
-  for (const g of payload.games) {
-    const key = gameKey(g.home_team, g.away_team, g.game_time)
-    const homeId = teamByAbbr.get(g.home_team.toUpperCase())
-    const awayId = teamByAbbr.get(g.away_team.toUpperCase())
-
-    if (!homeId || !awayId) {
-      results.push({ game: key, status: 'error', error: `Unknown team(s): ${g.home_team}/${g.away_team}` })
-      errors++
-      continue
-    }
-
-    // Upsert game by natural key
-    const { data: gameRows, error: gameErr } = await supabase
-      .from('games')
-      .upsert(
-        {
-          sport_id: 'mlb',
-          home_team_id: homeId,
-          away_team_id: awayId,
-          game_date: payload.date,
-          game_time: g.game_time,
-          status: 'scheduled',
-        },
-        { onConflict: 'game_date,home_team_id,away_team_id,game_time' },
-      )
-      .select('id')
-
-    if (gameErr || !gameRows.length) {
-      results.push({ game: key, status: 'error', error: gameErr?.message ?? 'Game upsert returned no id' })
-      errors++
-      continue
-    }
-
-    const gameId = gameRows[0].id as string
-
-    // Source-of-truth: delete all existing recs for this game, then insert new ones
-    const { error: delErr } = await supabase
-      .from('recommendations')
-      .delete()
-      .eq('game_id', gameId)
-
-    if (delErr) {
-      results.push({ game: key, status: 'error', error: `Failed to clear recs: ${delErr.message}` })
-      errors++
-      continue
-    }
-
-    if (g.recommendations.length > 0) {
-      const insertRows = g.recommendations.map((r) => ({
-        game_id: gameId,
-        market: r.market,
-        pick: r.pick,
-        line: r.line,
-        stars: r.stars,
-      }))
-      const { error: insErr } = await supabase.from('recommendations').insert(insertRows)
-      if (insErr) {
-        results.push({ game: key, status: 'error', error: insErr.message })
-        errors++
-        continue
-      }
-      totalRecs += g.recommendations.length
-    }
-
-    results.push({ game: key, status: 'upserted', recs_written: g.recommendations.length })
-    upserted++
+  const results: IngestItemResult[] = []
+  for (const o of outcomes) {
+    results.push(o.result)
+    if (o.result.status === 'upserted') upserted++
+    else errors++
+    totalRecs += o.recsWritten
   }
 
   const total = payload.games.length
