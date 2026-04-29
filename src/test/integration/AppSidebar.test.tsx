@@ -3,108 +3,77 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 vi.mock('@tanstack/react-router', () => ({
-  useParams: () => ({ lang: 'en' }),
+  useParams: () => ({ lang: 'zh' }),
   useNavigate: () => vi.fn(),
-  Link: ({ children, ...props }: Record<string, unknown>) => <a {...props}>{children as React.ReactNode}</a>,
+  Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
 }))
 
-vi.mock('@/hooks/predictions/useDailyPredictions', () => ({
-  useSportCounts: () => ({ data: { nba: 5, mlb: 3 } }),
+vi.mock('@/hooks/predictions/useDailyRecommendations', () => ({
+  useRecommendationCounts: () => ({ data: { mlb: 8 } }),
 }))
 
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 
-describe('AppSidebar — sport category section', () => {
+describe('AppSidebar', () => {
   beforeEach(() => {
     usePredictionStore.getState().resetFilters()
   })
 
-  it('renders All, Basketball, and Baseball buttons', () => {
+  it('shows "全部" and "棒球" categories', () => {
     render(<AppSidebar />)
-    // "All" also appears in the Min Stars row (n=1), so we assert at least two occurrences
-    expect(screen.getAllByText('All').length).toBeGreaterThanOrEqual(2)
-    expect(screen.getByText('Basketball')).toBeInTheDocument()
-    expect(screen.getByText('Baseball')).toBeInTheDocument()
+    expect(screen.getByText('全部')).toBeInTheDocument()
+    expect(screen.getByText('棒球')).toBeInTheDocument()
   })
 
-  it('clicking Basketball sets sport to nba', async () => {
-    const user = userEvent.setup()
+  it('does NOT show 籃球 category', () => {
     render(<AppSidebar />)
-    await user.click(screen.getByText('Basketball'))
-    expect(usePredictionStore.getState().sport).toBe('nba')
+    expect(screen.queryByText('籃球')).not.toBeInTheDocument()
   })
 
-  it('clicking Baseball sets sport to mlb', async () => {
-    const user = userEvent.setup()
-    render(<AppSidebar />)
-    await user.click(screen.getByText('Baseball'))
-    expect(usePredictionStore.getState().sport).toBe('mlb')
-  })
-
-  it('clicking All sets sport to all', async () => {
-    const user = userEvent.setup()
-    usePredictionStore.setState({ sport: 'nba' })
-    render(<AppSidebar />)
-    // The sport category "All" button is first in DOM order; min stars "All" comes later
-    await user.click(screen.getAllByText('All')[0])
-    expect(usePredictionStore.getState().sport).toBe('all')
-  })
-})
-
-describe('AppSidebar — league section', () => {
-  beforeEach(() => {
-    usePredictionStore.getState().resetFilters()
-  })
-
-  it('shows "Leagues" label when sport is all', () => {
-    render(<AppSidebar />)
-    expect(screen.getByText(/^leagues$/i)).toBeInTheDocument()
-  })
-
-  it('shows "Basketball Leagues" label when sport is nba', () => {
-    usePredictionStore.setState({ sport: 'nba' })
-    render(<AppSidebar />)
-    expect(screen.getByText(/basketball leagues/i)).toBeInTheDocument()
-  })
-
-  it('shows "Baseball Leagues" label when sport is mlb', () => {
-    usePredictionStore.setState({ sport: 'mlb' })
-    render(<AppSidebar />)
-    expect(screen.getByText(/baseball leagues/i)).toBeInTheDocument()
-  })
-
-  it('shows both NBA and MLB when sport is all', () => {
-    render(<AppSidebar />)
-    expect(screen.getByText('NBA')).toBeInTheDocument()
-    expect(screen.getByText('MLB')).toBeInTheDocument()
-  })
-
-  it('shows only NBA when sport is nba', () => {
-    usePredictionStore.setState({ sport: 'nba' })
-    render(<AppSidebar />)
-    expect(screen.getByText('NBA')).toBeInTheDocument()
-    expect(screen.queryByText('MLB')).not.toBeInTheDocument()
-  })
-
-  it('shows only MLB when sport is mlb', () => {
-    usePredictionStore.setState({ sport: 'mlb' })
+  it('shows MLB league', () => {
     render(<AppSidebar />)
     expect(screen.getByText('MLB')).toBeInTheDocument()
+  })
+
+  it('does NOT show NBA league', () => {
+    render(<AppSidebar />)
     expect(screen.queryByText('NBA')).not.toBeInTheDocument()
   })
 
-  it('clicking NBA sets sport to nba', async () => {
+  it('clicking 棒球 sets sport=mlb', async () => {
     const user = userEvent.setup()
     render(<AppSidebar />)
-    await user.click(screen.getByText('NBA'))
-    expect(usePredictionStore.getState().sport).toBe('nba')
+    await user.click(screen.getByText('棒球'))
+    expect(usePredictionStore.getState().sport).toBe('mlb')
   })
 
-  it('clicking MLB sets sport to mlb', async () => {
+  it('renders MARKETS section with three chips', () => {
+    render(<AppSidebar />)
+    expect(screen.getByText('獨贏')).toBeInTheDocument()
+    expect(screen.getByText('讓分')).toBeInTheDocument()
+    expect(screen.getByText('大小分')).toBeInTheDocument()
+  })
+
+  it('clicking a market chip toggles store', async () => {
     const user = userEvent.setup()
     render(<AppSidebar />)
-    await user.click(screen.getByText('MLB'))
-    expect(usePredictionStore.getState().sport).toBe('mlb')
+    await user.click(screen.getByText('讓分'))
+    expect(usePredictionStore.getState().markets.has('spread')).toBe(false)
+  })
+
+  it('renders min-star buttons (2+ / 3+ / 4+ / 5)', () => {
+    render(<AppSidebar />)
+    expect(screen.getByText('2+')).toBeInTheDocument()
+    expect(screen.getByText('3+')).toBeInTheDocument()
+    expect(screen.getByText('4+')).toBeInTheDocument()
+    expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('clicking 4+ sets minStars=4', async () => {
+    const user = userEvent.setup()
+    render(<AppSidebar />)
+    await user.click(screen.getByText('4+'))
+    expect(usePredictionStore.getState().minStars).toBe(4)
   })
 })
