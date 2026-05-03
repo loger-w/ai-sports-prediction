@@ -88,11 +88,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const gameId = gameRows[0].id as string
 
-      // Source-of-truth: delete all existing recs for this game, then insert new ones
+      // Cron is source-of-truth ONLY for source='cron' rows. Admin-manual
+      // entries (source='manual') survive subsequent ingests.
       const { error: delErr } = await supabase
         .from('recommendations')
         .delete()
         .eq('game_id', gameId)
+        .eq('source', 'cron')
 
       if (delErr) {
         return {
@@ -108,6 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           pick: r.pick,
           line: r.line,
           stars: r.stars,
+          source: 'cron' as const,
         }))
         const { error: insErr } = await supabase.from('recommendations').insert(insertRows)
         if (insErr) {
