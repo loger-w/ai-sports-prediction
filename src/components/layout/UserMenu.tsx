@@ -58,14 +58,14 @@ export function UserMenu() {
             </p>
           </div>
           {isAdmin && (
-            <a
-              href="/admin"
+            <Link
+              to="/admin"
               onClick={() => setOpen(false)}
               className="block px-4 py-2 text-sm text-[#94a3b8] hover:bg-[rgba(0,229,160,0.08)] hover:text-[#00e5a0] transition-colors"
               style={FONT}
             >
               → Admin 後台
-            </a>
+            </Link>
           )}
           <button
             type="button"
