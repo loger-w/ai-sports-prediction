@@ -3,9 +3,15 @@
 -- and recommendations from the client. Cron uses the service-role key and
 -- bypasses RLS, so it remains unaffected.
 --
--- Set the role in Supabase dashboard:
---   Authentication → Users → <user> → Raw User Meta Data
---   add to app_metadata: {"role": "admin"}
+-- Set the role on a registered user. Two ways:
+--   A) Dashboard: Authentication → Users → <user> → "Raw App Meta Data"
+--      → JSON: {"role": "admin"}
+--   B) SQL:
+--      UPDATE auth.users
+--      SET raw_app_meta_data = COALESCE(raw_app_meta_data, '{}'::jsonb)
+--                              || '{"role":"admin"}'::jsonb
+--      WHERE email = '<admin-email>';
+-- The user must sign out and sign back in for the new JWT to carry the role.
 
 CREATE POLICY "games_admin_all" ON games FOR ALL
   TO authenticated
