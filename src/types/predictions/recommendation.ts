@@ -11,6 +11,7 @@ export interface TeamRow {
   name_zh: string
   abbreviation: string
   logo_url: string | null
+  external_id: number | null
 }
 
 /** Minimal team shape used by the recommendation list/grid UI. */

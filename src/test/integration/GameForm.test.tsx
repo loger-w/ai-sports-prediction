@@ -4,9 +4,9 @@ import { GameForm, type GameFormValue } from '@/components/admin/GameForm'
 import type { TeamRow } from '@/types/predictions/recommendation'
 
 const TEAMS: TeamRow[] = [
-  { id: 'lad', sport_id: 'mlb', name_zh: '道奇', abbreviation: 'LAD', logo_url: null },
-  { id: 'sd',  sport_id: 'mlb', name_zh: '教士', abbreviation: 'SD',  logo_url: null },
-  { id: 'nyy', sport_id: 'mlb', name_zh: '洋基', abbreviation: 'NYY', logo_url: null },
+  { id: 'lad', sport_id: 'mlb', name_zh: '道奇', abbreviation: 'LAD', logo_url: null, external_id: 119 },
+  { id: 'sd',  sport_id: 'mlb', name_zh: '教士', abbreviation: 'SD',  logo_url: null, external_id: 135 },
+  { id: 'nyy', sport_id: 'mlb', name_zh: '洋基', abbreviation: 'NYY', logo_url: null, external_id: 147 },
 ]
 
 const BASE: GameFormValue = {
