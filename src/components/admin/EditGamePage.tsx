@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
@@ -156,6 +156,12 @@ export function EditGamePage({ gameId }: { gameId: string }) {
 
   return (
     <div className="py-8 px-4 space-y-6" style={FONT}>
+      <Link
+        to="/admin"
+        className="inline-flex items-center gap-1 text-sm text-[#00e5a0] hover:underline"
+      >
+        ← 返回比賽管理
+      </Link>
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-[#e2e8f0]">編輯比賽</h1>

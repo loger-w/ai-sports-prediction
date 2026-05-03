@@ -83,27 +83,9 @@ export function RecommendationCard({ rec }: Props) {
         </div>
       </div>
 
-      {/* Teams */}
+      {/* Teams: away on left, home on right (MLB convention) */}
       <div className="px-3.5 py-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div className="min-w-0">
-          <div
-            data-picked={homePicked}
-            className="text-[26px] font-black leading-none mb-0.5"
-            style={{
-              ...FONT,
-              color: homePicked ? '#e2e8f0' : '#6b7280',
-            }}
-          >
-            {home.abbreviation}
-          </div>
-          <div className="text-[17px] text-[#94a3b8] truncate" style={FONT}>
-            {home.name_zh}
-          </div>
-        </div>
-
-        <div className="text-[14px] font-bold text-[#6b7280]" style={FONT}>{t.predictions.vs}</div>
-
-        <div className="text-right min-w-0">
           <div
             data-picked={awayPicked}
             className="text-[26px] font-black leading-none mb-0.5"
@@ -116,6 +98,24 @@ export function RecommendationCard({ rec }: Props) {
           </div>
           <div className="text-[17px] text-[#94a3b8] truncate" style={FONT}>
             {away.name_zh}
+          </div>
+        </div>
+
+        <div className="text-[14px] font-bold text-[#6b7280]" style={FONT}>{t.predictions.vs}</div>
+
+        <div className="text-right min-w-0">
+          <div
+            data-picked={homePicked}
+            className="text-[26px] font-black leading-none mb-0.5"
+            style={{
+              ...FONT,
+              color: homePicked ? '#e2e8f0' : '#6b7280',
+            }}
+          >
+            {home.abbreviation}
+          </div>
+          <div className="text-[17px] text-[#94a3b8] truncate" style={FONT}>
+            {home.name_zh}
           </div>
         </div>
       </div>

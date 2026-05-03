@@ -58,7 +58,7 @@ export function AdminDashboard() {
             <thead className="bg-[#0d1117] border-b border-[#1e2733]">
               <tr className="text-left text-xs text-[#94a3b8] uppercase tracking-wider">
                 <th className="px-4 py-3">時間</th>
-                <th className="px-4 py-3">主 vs 客</th>
+                <th className="px-4 py-3">客 @ 主</th>
                 <th className="px-4 py-3">狀態</th>
                 <th className="px-4 py-3">推薦</th>
                 <th className="px-4 py-3 text-right">操作</th>
@@ -78,7 +78,7 @@ export function AdminDashboard() {
                       <div className="text-[#94a3b8]">{g.game_time.slice(11, 16)}</div>
                     </td>
                     <td className="px-4 py-3 text-sm font-bold">
-                      {g.home_team.abbreviation} vs {g.away_team.abbreviation}
+                      {g.away_team.abbreviation} @ {g.home_team.abbreviation}
                     </td>
                     <td className="px-4 py-3 text-sm text-[#94a3b8]">{g.status}</td>
                     <td className="px-4 py-3 text-sm">
