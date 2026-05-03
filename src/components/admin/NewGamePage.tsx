@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
 import { RecommendationFormRow, type RecFormValue } from './RecommendationFormRow'
+import { MlbScheduleImporter } from './MlbScheduleImporter'
 import { useTeams } from '@/hooks/useTeams'
 import { adminGamesApi, adminRecommendationsApi } from '@/services/admin/adminApi'
 import { localToday } from '@/lib/timezone'
@@ -12,10 +13,14 @@ const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
 const EMPTY_REC: RecFormValue = { market: 'ml', pick: 'home', line: null, stars: 3 }
 
+type Mode = 'import' | 'manual'
+
 export function NewGamePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const teamsQuery = useTeams('mlb')
+
+  const [mode, setMode] = useState<Mode>('import')
 
   const today = localToday()
   const [game, setGame] = useState<GameFormValue>({
@@ -74,63 +79,104 @@ export function NewGamePage() {
 
   return (
     <div className="py-8 px-4 space-y-6" style={FONT}>
+      <Link
+        to="/admin"
+        className="inline-flex items-center gap-1 text-sm text-[#00e5a0] hover:underline"
+      >
+        ← 返回比賽管理
+      </Link>
       <header>
         <h1 className="text-2xl font-black text-[#e2e8f0] mb-2">新增比賽</h1>
-        <p className="text-sm text-[#94a3b8]">建立一場手動比賽 + 推薦（source=manual，cron 不會洗掉）</p>
+        <p className="text-sm text-[#94a3b8]">
+          從 MLB 賽程批次匯入，或手動建立特殊場次（雙重賽、補賽等）
+        </p>
       </header>
 
-      <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6">
-        <h2 className="text-base font-bold text-[#e2e8f0] mb-4">比賽資訊</h2>
-        {teamsQuery.isLoading ? (
-          <p className="text-[#94a3b8]">載入隊伍…</p>
-        ) : (
-          <GameForm value={game} onChange={setGame} teams={teamsQuery.data ?? []} />
-        )}
-      </section>
-
-      <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-[#e2e8f0]">推薦</h2>
-          <button
-            type="button"
-            onClick={addRec}
-            className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
-          >
-            + 新增推薦
-          </button>
-        </div>
-        <div className="space-y-3">
-          {recs.map((r, i) => (
-            <RecommendationFormRow
-              key={i}
-              value={r}
-              onChange={(next) => updateRec(i, next)}
-              onRemove={() => removeRec(i)}
-            />
-          ))}
-          {recs.length === 0 ? (
-            <p className="text-sm text-[#94a3b8]">尚未新增推薦。</p>
-          ) : null}
-        </div>
-      </section>
-
-      <div className="flex gap-3 justify-end">
+      <div className="flex gap-2 border-b border-[#1e2733]">
         <button
           type="button"
-          onClick={() => navigate({ to: '/admin' })}
-          className="px-4 py-2 rounded text-sm font-bold bg-transparent text-[#94a3b8] border border-[#1e2733] hover:bg-[#161b22]"
+          onClick={() => setMode('import')}
+          className={
+            mode === 'import'
+              ? 'px-4 py-2 text-sm font-bold text-[#00e5a0] border-b-2 border-[#00e5a0]'
+              : 'px-4 py-2 text-sm font-bold text-[#94a3b8] hover:text-[#e2e8f0]'
+          }
         >
-          取消
+          MLB 賽程匯入
         </button>
         <button
           type="button"
-          disabled={submitting}
-          onClick={handleSubmit}
-          className="px-6 py-2 rounded text-sm font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-60"
+          onClick={() => setMode('manual')}
+          className={
+            mode === 'manual'
+              ? 'px-4 py-2 text-sm font-bold text-[#00e5a0] border-b-2 border-[#00e5a0]'
+              : 'px-4 py-2 text-sm font-bold text-[#94a3b8] hover:text-[#e2e8f0]'
+          }
         >
-          {submitting ? '儲存中…' : '儲存'}
+          手動建立
         </button>
       </div>
+
+      {mode === 'import' ? (
+        <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6">
+          <MlbScheduleImporter />
+        </section>
+      ) : (
+        <>
+          <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6">
+            <h2 className="text-base font-bold text-[#e2e8f0] mb-4">比賽資訊</h2>
+            {teamsQuery.isLoading ? (
+              <p className="text-[#94a3b8]">載入隊伍…</p>
+            ) : (
+              <GameForm value={game} onChange={setGame} teams={teamsQuery.data ?? []} />
+            )}
+          </section>
+
+          <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-[#e2e8f0]">推薦</h2>
+              <button
+                type="button"
+                onClick={addRec}
+                className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
+              >
+                + 新增推薦
+              </button>
+            </div>
+            <div className="space-y-3">
+              {recs.map((r, i) => (
+                <RecommendationFormRow
+                  key={i}
+                  value={r}
+                  onChange={(next) => updateRec(i, next)}
+                  onRemove={() => removeRec(i)}
+                />
+              ))}
+              {recs.length === 0 ? (
+                <p className="text-sm text-[#94a3b8]">尚未新增推薦。</p>
+              ) : null}
+            </div>
+          </section>
+
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={() => navigate({ to: '/admin' })}
+              className="px-4 py-2 rounded text-sm font-bold bg-transparent text-[#94a3b8] border border-[#1e2733] hover:bg-[#161b22]"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={handleSubmit}
+              className="px-6 py-2 rounded text-sm font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-60"
+            >
+              {submitting ? '儲存中…' : '儲存'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
