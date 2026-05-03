@@ -1,6 +1,7 @@
 import { useTranslation } from '@/lib/i18n'
 import type { RecResult, RecommendationWithGame } from '@/types/predictions/recommendation'
 import { StarRating } from './StarRating'
+import { VoteButtons } from './VoteButtons'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
@@ -127,6 +128,14 @@ export function RecommendationCard({ rec }: Props) {
           <span className="text-[15px] text-[#fbbf24] font-bold" style={FONT}>{rec.stars}</span>
         </span>
       </div>
+
+      {/* Votes */}
+      <VoteButtons
+        gameId={rec.game_id}
+        market={rec.market}
+        upCount={rec.vote_up_count}
+        downCount={rec.vote_down_count}
+      />
     </div>
   )
 }

@@ -12,9 +12,15 @@ vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
 }))
 
+// Grid tests focus on layout — VoteButtons has its own integration test.
+vi.mock('@/components/predictions/VoteButtons', () => ({
+  VoteButtons: () => null,
+}))
+
 function rec(overrides: Partial<RecommendationWithGame> = {}): RecommendationWithGame {
   return {
     game_id: 'g1', market: 'ml', pick: 'home', line: null, stars: 4, result: null,
+    vote_up_count: 0, vote_down_count: 0,
     game: {
       id: 'g1', sport_id: 'mlb',
       home_team_id: 'lad', away_team_id: 'sd',
