@@ -1,5 +1,6 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { Analytics } from '@vercel/analytics/react'
+import { AuthInitializer } from '@/components/auth/AuthInitializer'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
 
@@ -58,6 +59,7 @@ export const Route = createRootRoute({
   notFoundComponent: RootNotFoundComponent,
   component: () => (
     <div className="min-h-screen bg-background text-foreground">
+      <AuthInitializer />
       <Outlet />
       <Analytics />
     </div>
