@@ -48,25 +48,27 @@ const FIXTURE = {
 }
 
 describe('fetchMlbScheduleByTaiwanDate', () => {
-  let fetchSpy: ReturnType<typeof vi.spyOn>
+  const realFetch = globalThis.fetch
+  let mockFetch: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+    mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       statusText: 'OK',
       json: async () => FIXTURE,
     } as unknown as Response)
+    globalThis.fetch = mockFetch as unknown as typeof globalThis.fetch
   })
 
   afterEach(() => {
-    fetchSpy.mockRestore()
+    globalThis.fetch = realFetch
   })
 
   it('queries the MLB API with startDate=TW-1 day and endDate=TW day', async () => {
     await fetchMlbScheduleByTaiwanDate('2026-05-05')
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const url = fetchSpy.mock.calls[0][0] as string
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    const url = mockFetch.mock.calls[0][0] as string
     expect(url).toContain('startDate=2026-05-04')
     expect(url).toContain('endDate=2026-05-05')
     expect(url).toContain('sportId=1')
@@ -86,7 +88,7 @@ describe('fetchMlbScheduleByTaiwanDate', () => {
   })
 
   it('throws on HTTP error', async () => {
-    fetchSpy.mockResolvedValueOnce({
+    mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
