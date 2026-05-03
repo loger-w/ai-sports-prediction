@@ -20,24 +20,19 @@ interface Props {
 interface CountState {
   up: number
   down: number
-  userVote: VoteValue | null
 }
 
-function transitionCounts(prev: CountState, action: VoteValue | 'remove'): CountState {
-  let { up, down, userVote } = prev
-  // Remove existing vote effect
-  if (userVote === 1) up--
-  else if (userVote === -1) down--
-
-  // Apply new
+function applyDelta(
+  prev: CountState,
+  prevVote: VoteValue | null,
+  action: VoteValue | 'remove',
+): CountState {
+  let { up, down } = prev
+  if (prevVote === 1) up--
+  else if (prevVote === -1) down--
   if (action === 1) up++
   else if (action === -1) down++
-
-  return {
-    up,
-    down,
-    userVote: action === 'remove' ? null : action,
-  }
+  return { up, down }
 }
 
 export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
@@ -48,16 +43,23 @@ export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
 
   const propUserVote = votes.get(recKey(gameId, market)) ?? null
 
-  const [state, setState] = useState<CountState>({
-    up: upCount,
-    down: downCount,
-    userVote: propUserVote,
-  })
+  // Counts and userVote are tracked as TWO independent local states with TWO separate
+  // re-sync effects. This decoupling fixes a flicker bug: previously a single effect
+  // depended on [upCount, downCount, propUserVote], so when user-votes refetched
+  // first (propUserVote updated) the effect fired and reset counts to the still-stale
+  // upCount, briefly showing the pre-vote number until recommendations refetched.
+  const [counts, setCounts] = useState<CountState>({ up: upCount, down: downCount })
+  const [pendingVote, setPendingVote] = useState<VoteValue | null | undefined>(undefined)
 
-  // Re-sync from props when they change (e.g., refetch)
   useEffect(() => {
-    setState({ up: upCount, down: downCount, userVote: propUserVote })
-  }, [upCount, downCount, propUserVote])
+    setCounts({ up: upCount, down: downCount })
+  }, [upCount, downCount])
+
+  useEffect(() => {
+    setPendingVote(undefined)
+  }, [propUserVote])
+
+  const userVote = pendingVote === undefined ? propUserVote : pendingVote
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['user-votes'] })
@@ -73,12 +75,16 @@ export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
         value,
       }),
     onMutate: async (value) => {
-      const prev = state
-      setState(transitionCounts(prev, value))
+      const prev = { counts, pendingVote }
+      setCounts(applyDelta(counts, userVote, value))
+      setPendingVote(value)
       return { prev }
     },
     onError: (_err, _value, ctx) => {
-      if (ctx) setState(ctx.prev)
+      if (ctx) {
+        setCounts(ctx.prev.counts)
+        setPendingVote(ctx.prev.pendingVote)
+      }
       toast.error('投票失敗，請稍後再試')
     },
     onSettled: invalidate,
@@ -92,12 +98,16 @@ export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
         market,
       }),
     onMutate: async () => {
-      const prev = state
-      setState(transitionCounts(prev, 'remove'))
+      const prev = { counts, pendingVote }
+      setCounts(applyDelta(counts, userVote, 'remove'))
+      setPendingVote(null)
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx) setState(ctx.prev)
+      if (ctx) {
+        setCounts(ctx.prev.counts)
+        setPendingVote(ctx.prev.pendingVote)
+      }
       toast.error('取消投票失敗，請稍後再試')
     },
     onSettled: invalidate,
@@ -109,15 +119,15 @@ export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
       navigate({ to: '/login' })
       return
     }
-    if (state.userVote === direction) {
+    if (userVote === direction) {
       remove.mutate()
     } else {
       upsert.mutate(direction)
     }
   }
 
-  const upPressed = state.userVote === 1
-  const downPressed = state.userVote === -1
+  const upPressed = userVote === 1
+  const downPressed = userVote === -1
 
   return (
     <div
@@ -134,7 +144,7 @@ export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
             : 'flex-1 bg-[rgba(0,229,160,0.06)] border border-[rgba(0,229,160,0.18)] text-[#94a3b8] hover:text-[#00e5a0] hover:bg-[rgba(0,229,160,0.10)] py-1.5 rounded text-[13px] font-bold tracking-wide transition-colors'
         }
       >
-        ▲ 同意 {state.up}
+        ▲ 同意 {counts.up}
       </button>
       <button
         type="button"
@@ -146,7 +156,7 @@ export function VoteButtons({ gameId, market, upCount, downCount }: Props) {
             : 'flex-1 bg-[rgba(252,129,129,0.05)] border border-[rgba(252,129,129,0.15)] text-[#94a3b8] hover:text-[#fc8181] hover:bg-[rgba(252,129,129,0.08)] py-1.5 rounded text-[13px] font-bold tracking-wide transition-colors'
         }
       >
-        ▼ 不同意 {state.down}
+        ▼ 不同意 {counts.down}
       </button>
     </div>
   )
