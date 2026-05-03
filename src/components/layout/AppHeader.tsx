@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
+import { UserMenu } from './UserMenu'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
@@ -49,6 +50,8 @@ export function AppHeader() {
           {t.nav.accuracy}
         </Link>
       </nav>
+
+      <UserMenu />
     </header>
   )
 }
