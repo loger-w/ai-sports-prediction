@@ -9,6 +9,11 @@ vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, ...rest }: Record<string, unknown>) => <a {...rest}>{children as React.ReactNode}</a>,
 }))
 
+// Card tests focus on card layout — VoteButtons has its own integration test.
+vi.mock('@/components/predictions/VoteButtons', () => ({
+  VoteButtons: () => null,
+}))
+
 function makeRec(overrides: Partial<RecommendationWithGame> = {}): RecommendationWithGame {
   const base: RecommendationWithGame = {
     game_id: 'g1',
@@ -17,6 +22,8 @@ function makeRec(overrides: Partial<RecommendationWithGame> = {}): Recommendatio
     line: -1.5,
     stars: 4,
     result: null,
+    vote_up_count: 0,
+    vote_down_count: 0,
     game: {
       id: 'g1',
       sport_id: 'mlb',

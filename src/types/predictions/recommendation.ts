@@ -36,6 +36,8 @@ export interface RecommendationRow {
   line: number | null           // ml=null; spread/ou required
   stars: number                 // 1-5
   result: RecResult | null      // null = pending
+  vote_up_count: number         // denormalised; maintained by DB trigger
+  vote_down_count: number
 }
 
 /** Fully joined row used by the recommendation list/grid UI. */

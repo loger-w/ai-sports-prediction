@@ -8,7 +8,7 @@ import type {
 } from '@/types/predictions/recommendation'
 
 const RECS_SELECT = `
-  game_id, market, pick, line, stars, result,
+  game_id, market, pick, line, stars, result, vote_up_count, vote_down_count,
   game:games!inner(
     id, sport_id, game_date, game_time, status,
     home_team:teams!games_home_team_id_fkey(abbreviation, name_zh),
