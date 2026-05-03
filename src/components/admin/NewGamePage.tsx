@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
@@ -74,6 +74,12 @@ export function NewGamePage() {
 
   return (
     <div className="py-8 px-4 space-y-6" style={FONT}>
+      <Link
+        to="/admin"
+        className="inline-flex items-center gap-1 text-sm text-[#00e5a0] hover:underline"
+      >
+        ← 返回比賽管理
+      </Link>
       <header>
         <h1 className="text-2xl font-black text-[#e2e8f0] mb-2">新增比賽</h1>
         <p className="text-sm text-[#94a3b8]">建立一場手動比賽 + 推薦（source=manual，cron 不會洗掉）</p>
