@@ -11,7 +11,13 @@ import { localToday } from '@/lib/timezone'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
-const EMPTY_REC: RecFormValue = { market: 'ml', pick: 'home', line: null, stars: 3 }
+const EMPTY_REC: RecFormValue = {
+  market: 'ml',
+  pick: 'home',
+  line: null,
+  stars: 3,
+  audience: 'all',
+}
 
 type Mode = 'import' | 'manual'
 

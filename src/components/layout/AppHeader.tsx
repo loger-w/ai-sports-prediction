@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
 import { UserMenu } from './UserMenu'
+import { AdminPill } from './AdminPill'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
@@ -51,7 +52,10 @@ export function AppHeader() {
         </Link>
       </nav>
 
-      <UserMenu />
+      <div className="flex items-center gap-2">
+        <AdminPill />
+        <UserMenu />
+      </div>
     </header>
   )
 }

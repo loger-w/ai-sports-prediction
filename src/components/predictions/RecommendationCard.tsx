@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useTranslation } from '@/lib/i18n'
 import type { RecResult, RecommendationWithGame } from '@/types/predictions/recommendation'
 import { StarRating } from './StarRating'
@@ -29,6 +30,7 @@ function timePart(gameTime: string): string {
 }
 
 function formatPick(rec: RecommendationWithGame, t: ReturnType<typeof useTranslation>['t']): string {
+  if (rec.pick === null) return '—'
   if (rec.market === 'ml') {
     return rec.pick === 'home' ? rec.game.home_team.abbreviation : rec.game.away_team.abbreviation
   }
@@ -59,8 +61,9 @@ export function RecommendationCard({ rec }: Props) {
   const { t } = useTranslation()
   const home = rec.game.home_team
   const away = rec.game.away_team
-  const homePicked = rec.pick === 'home' || (rec.market === 'ou')
-  const awayPicked = rec.pick === 'away' || (rec.market === 'ou')
+  const isLocked = rec.audience === 'premium' && rec.pick === null
+  const homePicked = !isLocked && (rec.pick === 'home' || rec.market === 'ou')
+  const awayPicked = !isLocked && (rec.pick === 'away' || rec.market === 'ou')
 
   const sportLabel = rec.game.sport_id.toUpperCase()
   const marketLabel = t.market[rec.market]
@@ -120,22 +123,49 @@ export function RecommendationCard({ rec }: Props) {
         </div>
       </div>
 
-      {/* Pick + Stars */}
-      <div className="border-t border-[#1e2733] px-3.5 py-2.5 flex items-center justify-between">
-        <span className="text-[17px] font-bold text-[#e2e8f0]" style={FONT}>{pickText}</span>
-        <span data-testid="rec-stars" className="flex items-center gap-1">
-          <StarRating stars={rec.stars} size={15} />
-          <span className="text-[15px] text-[#fbbf24] font-bold" style={FONT}>{rec.stars}</span>
-        </span>
-      </div>
+      {/* Pick + Stars (or locked placeholder) */}
+      {isLocked ? (
+        <Link
+          to="/upgrade"
+          className="block border-t border-[#1e2733] px-3.5 py-3 bg-[rgba(251,191,36,0.04)] hover:bg-[rgba(251,191,36,0.08)] transition-colors"
+          aria-label="此推薦為 Premium 專屬，點擊了解升級方案"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <span aria-hidden className="text-[17px]">🔒</span>
+              <span
+                className="text-[15px] font-bold tracking-widest uppercase text-[#fbbf24]"
+                style={FONT}
+              >
+                Premium 專屬
+              </span>
+            </span>
+            <span
+              className="text-[13px] font-bold text-[#94a3b8] hover:text-[#fbbf24]"
+              style={FONT}
+            >
+              升級解鎖 →
+            </span>
+          </div>
+        </Link>
+      ) : (
+        <>
+          <div className="border-t border-[#1e2733] px-3.5 py-2.5 flex items-center justify-between">
+            <span className="text-[17px] font-bold text-[#e2e8f0]" style={FONT}>{pickText}</span>
+            <span data-testid="rec-stars" className="flex items-center gap-1">
+              <StarRating stars={rec.stars ?? 0} size={15} />
+              <span className="text-[15px] text-[#fbbf24] font-bold" style={FONT}>{rec.stars ?? '—'}</span>
+            </span>
+          </div>
 
-      {/* Votes */}
-      <VoteButtons
-        gameId={rec.game_id}
-        market={rec.market}
-        upCount={rec.vote_up_count}
-        downCount={rec.vote_down_count}
-      />
+          <VoteButtons
+            gameId={rec.game_id}
+            market={rec.market}
+            upCount={rec.vote_up_count}
+            downCount={rec.vote_down_count}
+          />
+        </>
+      )}
     </div>
   )
 }

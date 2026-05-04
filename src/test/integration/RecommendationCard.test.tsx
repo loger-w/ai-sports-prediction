@@ -18,6 +18,7 @@ function makeRec(overrides: Partial<RecommendationWithGame> = {}): Recommendatio
   const base: RecommendationWithGame = {
     game_id: 'g1',
     market: 'spread',
+    audience: 'all',
     pick: 'home',
     line: -1.5,
     stars: 4,
@@ -102,5 +103,22 @@ describe('RecommendationCard', () => {
   it('renders local time HH:mm portion of game_time', () => {
     render(<RecommendationCard rec={makeRec()} />)
     expect(screen.getByText('22:10')).toBeInTheDocument()
+  })
+
+  it('renders locked Premium placeholder when audience=premium and pick is masked', () => {
+    const rec = makeRec({
+      audience: 'premium',
+      pick: null,
+      line: null,
+      stars: null,
+      result: null,
+      vote_up_count: 0,
+      vote_down_count: 0,
+    })
+    render(<RecommendationCard rec={rec} />)
+    expect(screen.getByText(/Premium 專屬/)).toBeInTheDocument()
+    expect(screen.getByText(/升級解鎖/)).toBeInTheDocument()
+    // Pick / stars sections are hidden when locked
+    expect(screen.queryByTestId('rec-stars')).not.toBeInTheDocument()
   })
 })

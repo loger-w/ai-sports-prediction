@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
@@ -16,11 +17,17 @@ import { Route as LangRouteRouteImport } from './routes/$lang/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as LangPredictionsRouteRouteImport } from './routes/$lang/predictions/route'
 import { Route as LangAccuracyRouteRouteImport } from './routes/$lang/accuracy/route'
 import { Route as AdminGamesNewRouteImport } from './routes/admin/games.new'
 import { Route as AdminGamesGameIdRouteImport } from './routes/admin/games.$gameId'
 
+const UpgradeRoute = UpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -56,6 +63,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const LangPredictionsRouteRoute = LangPredictionsRouteRouteImport.update({
   id: '/predictions',
   path: '/predictions',
@@ -83,8 +95,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/upgrade': typeof UpgradeRoute
   '/$lang/accuracy': typeof LangAccuracyRouteRoute
   '/$lang/predictions': typeof LangPredictionsRouteRoute
+  '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/games/$gameId': typeof AdminGamesGameIdRoute
@@ -95,8 +109,10 @@ export interface FileRoutesByTo {
   '/$lang': typeof LangRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/upgrade': typeof UpgradeRoute
   '/$lang/accuracy': typeof LangAccuracyRouteRoute
   '/$lang/predictions': typeof LangPredictionsRouteRoute
+  '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/admin': typeof AdminIndexRoute
   '/admin/games/$gameId': typeof AdminGamesGameIdRoute
@@ -109,8 +125,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/upgrade': typeof UpgradeRoute
   '/$lang/accuracy': typeof LangAccuracyRouteRoute
   '/$lang/predictions': typeof LangPredictionsRouteRoute
+  '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/games/$gameId': typeof AdminGamesGameIdRoute
@@ -124,8 +142,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/signup'
+    | '/upgrade'
     | '/$lang/accuracy'
     | '/$lang/predictions'
+    | '/admin/users'
     | '/auth/callback'
     | '/admin/'
     | '/admin/games/$gameId'
@@ -136,8 +156,10 @@ export interface FileRouteTypes {
     | '/$lang'
     | '/login'
     | '/signup'
+    | '/upgrade'
     | '/$lang/accuracy'
     | '/$lang/predictions'
+    | '/admin/users'
     | '/auth/callback'
     | '/admin'
     | '/admin/games/$gameId'
@@ -149,8 +171,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/signup'
+    | '/upgrade'
     | '/$lang/accuracy'
     | '/$lang/predictions'
+    | '/admin/users'
     | '/auth/callback'
     | '/admin/'
     | '/admin/games/$gameId'
@@ -163,11 +187,19 @@ export interface RootRouteChildren {
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  UpgradeRoute: typeof UpgradeRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/upgrade': {
+      id: '/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof UpgradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -217,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/$lang/predictions': {
       id: '/$lang/predictions'
       path: '/predictions'
@@ -263,12 +302,14 @@ const LangRouteRouteWithChildren = LangRouteRoute._addFileChildren(
 )
 
 interface AdminRouteRouteChildren {
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminGamesGameIdRoute: typeof AdminGamesGameIdRoute
   AdminGamesNewRoute: typeof AdminGamesNewRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminGamesGameIdRoute: AdminGamesGameIdRoute,
   AdminGamesNewRoute: AdminGamesNewRoute,
@@ -284,6 +325,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRouteRoute: AdminRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  UpgradeRoute: UpgradeRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
