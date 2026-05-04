@@ -9,6 +9,7 @@ import { useTeams } from '@/hooks/useTeams'
 import { adminGamesApi, adminRecommendationsApi } from '@/services/admin/adminApi'
 import { supabase } from '@/lib/supabase'
 import type {
+  Audience,
   GameStatus,
   Market,
   Pick as RecPick,
@@ -24,6 +25,7 @@ interface ExistingRec {
   stars: number
   result: RecResult | null
   source: 'cron' | 'manual'
+  audience: Audience
 }
 
 interface ExistingGame {
@@ -49,7 +51,7 @@ export function EditGamePage({ gameId }: { gameId: string }) {
         .from('games')
         .select(`
           id, sport_id, home_team_id, away_team_id, game_date, game_time, status,
-          recommendations(market, pick, line, stars, result, source)
+          recommendations(market, pick, line, stars, result, source, audience)
         `)
         .eq('id', gameId)
         .single()
@@ -211,6 +213,11 @@ export function EditGamePage({ gameId }: { gameId: string }) {
                   <span className="text-[#94a3b8]">
                     {r.pick} {r.line ?? ''} · {r.stars}★ · {r.source}
                   </span>
+                  {r.audience === 'premium' ? (
+                    <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border border-[rgba(251,191,36,0.35)]">
+                      PREMIUM
+                    </span>
+                  ) : null}
                 </div>
                 <ResultEntry
                   market={r.market}
@@ -235,7 +242,7 @@ export function EditGamePage({ gameId }: { gameId: string }) {
           <h2 className="text-base font-bold text-[#e2e8f0]">新增推薦</h2>
           <button
             type="button"
-            onClick={() => setNewRecs((rs) => [...rs, { market: 'ml', pick: 'home', line: null, stars: 3 }])}
+            onClick={() => setNewRecs((rs) => [...rs, { market: 'ml', pick: 'home', line: null, stars: 3, audience: 'all' }])}
             className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
           >
             + 加一條

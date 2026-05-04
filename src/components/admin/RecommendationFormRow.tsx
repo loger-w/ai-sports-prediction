@@ -1,4 +1,4 @@
-import type { Market, Pick as RecPick } from '@/types/predictions/recommendation'
+import type { Audience, Market, Pick as RecPick } from '@/types/predictions/recommendation'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
@@ -11,6 +11,7 @@ export interface RecFormValue {
   pick: RecPick
   line: number | null
   stars: number
+  audience: Audience
 }
 
 interface Props {
@@ -31,6 +32,11 @@ function defaultsForMarket(market: Market): Pick<RecFormValue, 'pick' | 'line'> 
   return { pick: 'over', line: 0 }
 }
 
+const AUDIENCE_LABEL: Record<Audience, string> = {
+  all: '全部',
+  premium: 'Premium 限',
+}
+
 const LINE_LABEL: Record<Market, string> = {
   ml: '',
   spread: '讓分',
@@ -44,13 +50,19 @@ export function RecommendationFormRow({ value, onChange, onRemove }: Props) {
 
   function handleMarket(m: Market) {
     const d = defaultsForMarket(m)
-    onChange({ market: m, pick: d.pick, line: d.line, stars: value.stars })
+    onChange({
+      market: m,
+      pick: d.pick,
+      line: d.line,
+      stars: value.stars,
+      audience: value.audience,
+    })
   }
 
   const lineLabel = LINE_LABEL[value.market]
 
   return (
-    <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto] gap-2 items-end" style={FONT}>
+    <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-2 items-end" style={FONT}>
       <div>
         <label className={LABEL} htmlFor={`rec-market-${value.market}`}>盤口</label>
         <select
@@ -106,6 +118,20 @@ export function RecommendationFormRow({ value, onChange, onRemove }: Props) {
         >
           {[1, 2, 3, 4, 5].map((n) => (
             <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className={LABEL} htmlFor={`rec-audience-${value.market}`}>受眾</label>
+        <select
+          id={`rec-audience-${value.market}`}
+          aria-label="受眾"
+          className={FIELD}
+          value={value.audience}
+          onChange={(e) => patch({ audience: e.target.value as Audience })}
+        >
+          {(['all', 'premium'] as Audience[]).map((a) => (
+            <option key={a} value={a}>{AUDIENCE_LABEL[a]}</option>
           ))}
         </select>
       </div>

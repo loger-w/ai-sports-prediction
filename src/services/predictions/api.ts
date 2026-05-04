@@ -8,7 +8,7 @@ import type {
 } from '@/types/predictions/recommendation'
 
 const RECS_SELECT = `
-  game_id, market, pick, line, stars, result, vote_up_count, vote_down_count,
+  game_id, market, audience, pick, line, stars, result, vote_up_count, vote_down_count,
   game:games!inner(
     id, sport_id, game_date, game_time, status,
     home_team:teams!games_home_team_id_fkey(abbreviation, name_zh),
@@ -21,14 +21,18 @@ function compareForSort(
   b: RecommendationWithGame,
   sortBy: 'time' | 'stars',
 ): number {
+  // Masked rows (audience='premium', viewer not entitled) have stars === null;
+  // treat them as 0 for sorting so they fall to the bottom of stars-sorted lists.
+  const aStars = a.stars ?? 0
+  const bStars = b.stars ?? 0
   if (sortBy === 'stars') {
-    if (b.stars !== a.stars) return b.stars - a.stars
+    if (bStars !== aStars) return bStars - aStars
     return a.game.game_time.localeCompare(b.game.game_time)
   }
   // time
   const t = a.game.game_time.localeCompare(b.game.game_time)
   if (t !== 0) return t
-  return b.stars - a.stars
+  return bStars - aStars
 }
 
 export interface RecommendationFilters
@@ -41,10 +45,12 @@ export async function fetchDailyRecommendations(
 ): Promise<RecommendationWithGame[]> {
   if (filters.markets.length === 0) return []
 
+  // Stars filter must include masked premium rows (stars=null) so the lock
+  // placeholder still surfaces. Apply the threshold via OR with audience.
   let q = supabase
-    .from('recommendations')
+    .from('recommendations_public')
     .select(RECS_SELECT)
-    .gte('stars', filters.minStars)
+    .or(`stars.gte.${filters.minStars},audience.eq.premium`)
     .in('market', filters.markets)
     .eq('game.game_date', filters.dateRange)
 
@@ -65,7 +71,7 @@ export async function fetchRecommendationCounts(
 ): Promise<Record<string, number>> {
   // Number of recommendations per sport for the chosen date.
   const { data, error } = await supabase
-    .from('recommendations')
+    .from('recommendations_public')
     .select('game:games!inner(sport_id)')
     .eq('game.game_date', dateRange)
 
@@ -82,7 +88,7 @@ export async function fetchRecommendationCounts(
 /** Returns YYYY-MM-DD strings within [from, to] that have at least one recommendation. */
 export async function fetchDatesWithRecommendations(from: string, to: string): Promise<string[]> {
   const { data, error } = await supabase
-    .from('recommendations')
+    .from('recommendations_public')
     .select('game:games!inner(game_date)')
     .gte('game.game_date', from)
     .lte('game.game_date', to)
@@ -143,8 +149,11 @@ function finalize(b: AccuracyBucket): AccuracyBucket {
 }
 
 export async function fetchAccuracyData(): Promise<AccuracyData> {
+  // Masked premium rows have stars/result === null and are excluded by the
+  // .not('result', 'is', null) filter — so non-premium viewers see accuracy
+  // computed only over rows they're entitled to. Premium/admin see everything.
   const { data, error } = await supabase
-    .from('recommendations')
+    .from('recommendations_public')
     .select('market, stars, result, game:games!inner(game_date)')
     .not('result', 'is', null)
 
@@ -171,12 +180,15 @@ export async function fetchAccuracyData(): Promise<AccuracyData> {
 
   type Row = {
     market: Market
-    stars: number
-    result: RecResult
+    stars: number | null
+    result: RecResult | null
     game: { game_date: string } | { game_date: string }[]
   }
 
   for (const raw of data as unknown as Row[]) {
+    // Defensive: the view masks stars/result together, so if result is
+    // non-null stars is non-null too. Skip any row that fails this invariant.
+    if (raw.result == null || raw.stars == null) continue
     const game = Array.isArray(raw.game) ? raw.game[0] : raw.game
     if (!game.game_date) continue
 

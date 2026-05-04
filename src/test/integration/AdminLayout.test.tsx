@@ -7,7 +7,12 @@ const mocks = vi.hoisted(() => ({ navigate: vi.fn() }))
 
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet">[child route]</div>,
-  Link: ({ children, ...rest }: Record<string, unknown>) => (
+  Link: ({
+    children,
+    activeProps: _activeProps,
+    activeOptions: _activeOptions,
+    ...rest
+  }: Record<string, unknown>) => (
     <a {...rest}>{children as React.ReactNode}</a>
   ),
   useNavigate: () => mocks.navigate,

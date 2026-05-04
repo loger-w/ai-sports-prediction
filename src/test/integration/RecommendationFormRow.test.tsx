@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { RecommendationFormRow, type RecFormValue } from '@/components/admin/RecommendationFormRow'
 
-const ML: RecFormValue = { market: 'ml', pick: 'home', line: null, stars: 3 }
-const SPREAD: RecFormValue = { market: 'spread', pick: 'home', line: -1.5, stars: 2 }
-const OU: RecFormValue = { market: 'ou', pick: 'over', line: 8.5, stars: 4 }
+const ML: RecFormValue = { market: 'ml', pick: 'home', line: null, stars: 3, audience: 'all' }
+const SPREAD: RecFormValue = { market: 'spread', pick: 'home', line: -1.5, stars: 2, audience: 'all' }
+const OU: RecFormValue = { market: 'ou', pick: 'over', line: 8.5, stars: 4, audience: 'all' }
 
 describe('RecommendationFormRow', () => {
   it('renders market / pick / line / stars selects', () => {
@@ -49,6 +49,7 @@ describe('RecommendationFormRow', () => {
       pick: 'over',
       line: 0,
       stars: 3,
+      audience: 'all',
     })
   })
 

@@ -9,14 +9,14 @@ describe('makeAdminRecommendationsApi', () => {
 
     const api = makeAdminRecommendationsApi(supabase)
     const result = await api.createRecommendations([
-      { game_id: 'g1', market: 'ml', pick: 'home', line: null, stars: 3 },
-      { game_id: 'g1', market: 'spread', pick: 'home', line: -1.5, stars: 2 },
+      { game_id: 'g1', market: 'ml', pick: 'home', line: null, stars: 3, audience: 'all' },
+      { game_id: 'g1', market: 'spread', pick: 'home', line: -1.5, stars: 2, audience: 'premium' },
     ])
 
     expect(fromMock).toHaveBeenCalledWith('recommendations')
     expect(insert).toHaveBeenCalledWith([
-      { game_id: 'g1', market: 'ml', pick: 'home', line: null, stars: 3, source: 'manual' },
-      { game_id: 'g1', market: 'spread', pick: 'home', line: -1.5, stars: 2, source: 'manual' },
+      { game_id: 'g1', market: 'ml', pick: 'home', line: null, stars: 3, audience: 'all', source: 'manual' },
+      { game_id: 'g1', market: 'spread', pick: 'home', line: -1.5, stars: 2, audience: 'premium', source: 'manual' },
     ])
     expect(result).toEqual({ error: null })
   })

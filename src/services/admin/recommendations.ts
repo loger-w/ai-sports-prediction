@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
+  Audience,
   Market,
   Pick as RecPick,
   RecResult,
@@ -11,6 +12,7 @@ export interface CreateRecommendationInput {
   pick: RecPick
   line: number | null
   stars: number
+  audience: Audience
 }
 
 export type UpdateRecommendationPatch = Partial<{
@@ -18,6 +20,7 @@ export type UpdateRecommendationPatch = Partial<{
   line: number | null
   stars: number
   result: RecResult | null
+  audience: Audience
 }>
 
 export interface AdminRecommendationsApi {

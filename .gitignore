@@ -30,3 +30,6 @@ dist-ssr
 
 # Git worktrees
 .worktrees/
+
+# TanStack Router plugin cache
+.tanstack/
