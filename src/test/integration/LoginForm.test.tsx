@@ -4,7 +4,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   signInWithEmail: vi.fn(),
-  signInWithGoogle: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
 }))
@@ -13,7 +12,7 @@ vi.mock('@/lib/auth/authClient', () => ({
   authClient: {
     signInWithEmail: (email: string, password: string) =>
       mocks.signInWithEmail(email, password),
-    signInWithGoogle: () => mocks.signInWithGoogle(),
+    signInWithGoogle: vi.fn(),
     signOut: vi.fn(),
     signUpWithEmail: vi.fn(),
   },
@@ -42,11 +41,9 @@ describe('LoginForm', () => {
   beforeEach(() => {
     mocks.navigate.mockClear()
     mocks.signInWithEmail.mockClear()
-    mocks.signInWithGoogle.mockClear()
     mocks.toastSuccess.mockClear()
     mocks.toastError.mockClear()
     mocks.signInWithEmail.mockResolvedValue({ data: {}, error: null })
-    mocks.signInWithGoogle.mockResolvedValue({ data: {}, error: null })
   })
 
   it('renders email + password fields and a submit button', () => {
@@ -56,9 +53,9 @@ describe('LoginForm', () => {
     expect(screen.getByRole('button', { name: '登入' })).toBeInTheDocument()
   })
 
-  it('renders a Google sign-in button', () => {
+  it('does not render a Google sign-in button', () => {
     render(<LoginForm />)
-    expect(screen.getByRole('button', { name: /Google 登入/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Google/ })).not.toBeInTheDocument()
   })
 
   it('renders a link to /signup', () => {
@@ -120,11 +117,4 @@ describe('LoginForm', () => {
     expect(mocks.navigate).not.toHaveBeenCalled()
   })
 
-  it('Google button calls signInWithGoogle', async () => {
-    render(<LoginForm />)
-    fireEvent.click(screen.getByRole('button', { name: /Google 登入/ }))
-    await waitFor(() => {
-      expect(mocks.signInWithGoogle).toHaveBeenCalledOnce()
-    })
-  })
 })

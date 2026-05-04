@@ -24,11 +24,6 @@ export function SignupForm() {
     setVerificationSent(true)
   }
 
-  async function handleGoogle() {
-    const { error } = await authClient.signInWithGoogle()
-    if (error) toast.error(error.message)
-  }
-
   if (verificationSent) {
     return (
       <div className="max-w-md mx-auto py-12 px-4 text-center">
@@ -92,24 +87,6 @@ export function SignupForm() {
           {submitting ? '處理中…' : '註冊'}
         </Button>
       </form>
-
-      <div className="my-6 flex items-center gap-4">
-        <div className="flex-1 h-px bg-[#1e2733]" />
-        <span className="text-xs text-[#94a3b8]" style={FONT}>
-          或
-        </span>
-        <div className="flex-1 h-px bg-[#1e2733]" />
-      </div>
-
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleGoogle}
-        className="w-full border-[#1e2733] bg-[#0d1117] text-[#e2e8f0] hover:bg-[#161b22]"
-        style={FONT}
-      >
-        用 Google 註冊
-      </Button>
 
       <p
         className="text-center mt-6 text-sm text-[#94a3b8]"
