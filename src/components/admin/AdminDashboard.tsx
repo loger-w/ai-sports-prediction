@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { supabase } from '@/lib/supabase'
-import type { GameStatus } from '@/types/predictions/recommendation'
+import type { Audience, GameStatus } from '@/types/predictions/recommendation'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
@@ -12,7 +12,7 @@ interface AdminGameRow {
   status: GameStatus
   home_team: { name_zh: string; abbreviation: string }
   away_team: { name_zh: string; abbreviation: string }
-  recommendations: { market: string; source: 'cron' | 'manual' }[]
+  recommendations: { market: string; source: 'cron' | 'manual'; audience: Audience }[]
 }
 
 export function AdminDashboard() {
@@ -25,7 +25,7 @@ export function AdminDashboard() {
           id, game_date, game_time, status,
           home_team:teams!games_home_team_id_fkey(name_zh, abbreviation),
           away_team:teams!games_away_team_id_fkey(name_zh, abbreviation),
-          recommendations(market, source)
+          recommendations(market, source, audience)
         `)
         .order('game_time', { ascending: false })
         .limit(50)
@@ -61,6 +61,7 @@ export function AdminDashboard() {
                 <th className="px-4 py-3">客 @ 主</th>
                 <th className="px-4 py-3">狀態</th>
                 <th className="px-4 py-3">推薦</th>
+                <th className="px-4 py-3">受眾</th>
                 <th className="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
@@ -68,6 +69,8 @@ export function AdminDashboard() {
               {data.map((g) => {
                 const cron = g.recommendations.filter((r) => r.source === 'cron').length
                 const manual = g.recommendations.filter((r) => r.source === 'manual').length
+                const allCnt = g.recommendations.filter((r) => r.audience === 'all').length
+                const premCnt = g.recommendations.filter((r) => r.audience === 'premium').length
                 return (
                   <tr
                     key={g.id}
@@ -86,6 +89,11 @@ export function AdminDashboard() {
                       <span className="text-[#6b7280]"> / </span>
                       <span className="text-[#fbbf24]">{manual}</span>
                       <span className="text-xs text-[#6b7280] ml-1">(cron / manual)</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className="text-[#00e5a0]">{allCnt} 公開</span>
+                      <span className="text-[#6b7280]"> · </span>
+                      <span className="text-[#fbbf24]">{premCnt} Premium</span>
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
                       <Link

@@ -1,5 +1,6 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { Analytics } from '@vercel/analytics/react'
+import { Toaster } from 'sonner'
 import { AuthInitializer } from '@/components/auth/AuthInitializer'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
@@ -61,6 +62,7 @@ export const Route = createRootRoute({
     <div className="min-h-screen bg-background text-foreground">
       <AuthInitializer />
       <Outlet />
+      <Toaster richColors theme="dark" position="top-right" />
       <Analytics />
     </div>
   ),

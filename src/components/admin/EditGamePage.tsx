@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
 import { RecommendationFormRow, type RecFormValue } from './RecommendationFormRow'
 import { ResultEntry } from './ResultEntry'
+import { AudienceToggle } from './AudienceToggle'
 import { useTeams } from '@/hooks/useTeams'
 import { adminGamesApi, adminRecommendationsApi } from '@/services/admin/adminApi'
 import { supabase } from '@/lib/supabase'
@@ -63,6 +64,7 @@ export function EditGamePage({ gameId }: { gameId: string }) {
   const [game, setGame] = useState<GameFormValue | null>(null)
   const [newRecs, setNewRecs] = useState<RecFormValue[]>([])
   const [savingGame, setSavingGame] = useState(false)
+  const [pendingMarket, setPendingMarket] = useState<Market | null>(null)
 
   useEffect(() => {
     if (!gameQuery.data) return
@@ -128,6 +130,51 @@ export function EditGamePage({ gameId }: { gameId: string }) {
     }
     toast.success('結果已更新')
     void queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
+    void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
+  }
+
+  async function setAudience(market: Market, next: Audience) {
+    // Always read the latest cache value (avoid stale-closure on the toast undo path)
+    const current = queryClient.getQueryData<ExistingGame>(['admin', 'game', gameId])
+    const prev = current?.recommendations.find((r) => r.market === market)?.audience
+    if (!prev || prev === next) return
+
+    const writeCache = (audience: Audience) => {
+      queryClient.setQueryData<ExistingGame>(['admin', 'game', gameId], (old) =>
+        old
+          ? {
+              ...old,
+              recommendations: old.recommendations.map((r) =>
+                r.market === market ? { ...r, audience } : r,
+              ),
+            }
+          : old,
+      )
+    }
+
+    writeCache(next)
+    setPendingMarket(market)
+    const { error } = await adminRecommendationsApi.updateRecommendation(gameId, market, {
+      audience: next,
+    })
+    setPendingMarket(null)
+
+    if (error) {
+      writeCache(prev)
+      toast.error(`切換受眾失敗：${error.message}`)
+      return
+    }
+
+    toast.success(next === 'premium' ? '已切換為 Premium 限定' : '已切換為公開', {
+      action: {
+        label: '復原',
+        onClick: () => {
+          void setAudience(market, prev)
+        },
+      },
+      duration: 5000,
+    })
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'games', 'recent'] })
     void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
   }
 
@@ -208,16 +255,20 @@ export function EditGamePage({ gameId }: { gameId: string }) {
                 key={r.market}
                 className="flex items-center justify-between gap-4 p-3 bg-[#0d1117] border border-[#1e2733] rounded"
               >
-                <div className="text-sm flex-1">
-                  <span className="text-[#e2e8f0] font-bold">{r.market}</span>{' '}
-                  <span className="text-[#94a3b8]">
-                    {r.pick} {r.line ?? ''} · {r.stars}★ · {r.source}
-                  </span>
-                  {r.audience === 'premium' ? (
-                    <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold rounded bg-[rgba(251,191,36,0.12)] text-[#fbbf24] border border-[rgba(251,191,36,0.35)]">
-                      PREMIUM
+                <div className="text-sm flex-1 flex items-center gap-3">
+                  <div>
+                    <span className="text-[#e2e8f0] font-bold">{r.market}</span>{' '}
+                    <span className="text-[#94a3b8]">
+                      {r.pick} {r.line ?? ''} · {r.stars}★ · {r.source}
                     </span>
-                  ) : null}
+                  </div>
+                  <AudienceToggle
+                    value={r.audience}
+                    onChange={(next) => {
+                      void setAudience(r.market, next)
+                    }}
+                    disabled={pendingMarket === r.market}
+                  />
                 </div>
                 <ResultEntry
                   market={r.market}
