@@ -190,7 +190,10 @@ export function RecommendationFormRow({ value, onChange, onRemove, marketsTaken 
               step="0.5"
               className="w-24 px-3 py-2 rounded bg-[#0a0a0f] border border-[#1e2733] text-[#e2e8f0] focus:outline-none focus:border-[#00e5a0]"
               value={value.line ?? 0}
-              onChange={(e) => patch({ line: parseFloat(e.target.value) })}
+              onChange={(e) => {
+                const raw = parseFloat(e.target.value)
+                patch({ line: Number.isNaN(raw) ? null : raw })
+              }}
             />
           </div>
         ) : null}

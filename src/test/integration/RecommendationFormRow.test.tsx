@@ -87,6 +87,15 @@ describe('RecommendationFormRow (layout B)', () => {
     expect(onChange).toHaveBeenCalledWith({ ...ML, pick: 'away' })
   })
 
+  it('clicking the already-active pick segment does not call onChange', () => {
+    const onChange = vi.fn()
+    render(<RecommendationFormRow value={ML} onChange={onChange} onRemove={vi.fn()} />)
+    // ML.pick = 'home' → 主 segment is active
+    const group = screen.getByRole('radiogroup', { name: '選邊' })
+    fireEvent.click(within(group).getByRole('radio', { name: '主' }))
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('line input hidden for ml market', () => {
     render(<RecommendationFormRow value={ML} onChange={vi.fn()} onRemove={vi.fn()} />)
     expect(screen.queryByLabelText('讓分')).not.toBeInTheDocument()
