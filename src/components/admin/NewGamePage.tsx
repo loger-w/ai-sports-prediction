@@ -19,6 +19,11 @@ const EMPTY_REC: RecFormValue = {
   audience: 'all',
 }
 
+interface RecRow {
+  key: string
+  value: RecFormValue
+}
+
 type Mode = 'import' | 'manual'
 
 export function NewGamePage() {
@@ -37,7 +42,7 @@ export function NewGamePage() {
     game_time: `${today} 19:00:00`,
     status: 'scheduled',
   })
-  const [recs, setRecs] = useState<RecFormValue[]>([])
+  const [recs, setRecs] = useState<RecRow[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   // Initialize team ids once teams load
@@ -59,7 +64,7 @@ export function NewGamePage() {
     }
     if (recs.length > 0) {
       const { error: recErr } = await adminRecommendationsApi.createRecommendations(
-        recs.map((r) => ({ ...r, game_id: id })),
+        recs.map((r) => ({ ...r.value, game_id: id })),
       )
       if (recErr) {
         toast.error(`比賽已建立，但推薦插入失敗：${recErr.message}`)
@@ -73,23 +78,23 @@ export function NewGamePage() {
     navigate({ to: '/admin' })
   }
 
-  function updateRec(idx: number, next: RecFormValue) {
-    setRecs((rs) => rs.map((r, i) => (i === idx ? next : r)))
+  function updateRec(idx: number, value: RecFormValue) {
+    setRecs((rs) => rs.map((r, i) => (i === idx ? { ...r, value } : r)))
   }
   function removeRec(idx: number) {
     setRecs((rs) => rs.filter((_, i) => i !== idx))
   }
   function addRec() {
     setRecs((rs) => {
-      const taken = new Set(rs.map((r) => r.market))
-      const nextMarket = (['ml', 'spread', 'ou'] as const).find((m) => !taken.has(m)) ?? 'ml'
-      const next: RecFormValue = {
+      const taken = new Set(rs.map((r) => r.value.market))
+      const m = (['ml', 'spread', 'ou'] as const).find((x) => !taken.has(x)) ?? 'ml'
+      const value: RecFormValue = {
         ...EMPTY_REC,
-        market: nextMarket,
-        pick: nextMarket === 'ou' ? 'over' : 'home',
-        line: nextMarket === 'ml' ? null : 0,
+        market: m,
+        pick: m === 'ou' ? 'over' : 'home',
+        line: m === 'ml' ? null : 0,
       }
-      return [...rs, next]
+      return [...rs, { key: crypto.randomUUID(), value }]
     })
   }
 
@@ -163,11 +168,11 @@ export function NewGamePage() {
             <div className="space-y-3">
               {recs.map((r, i) => (
                 <RecommendationFormRow
-                  key={i}
-                  value={r}
+                  key={r.key}
+                  value={r.value}
                   onChange={(next) => updateRec(i, next)}
                   onRemove={() => removeRec(i)}
-                  marketsTaken={recs.filter((_, j) => j !== i).map((rr) => rr.market)}
+                  marketsTaken={recs.filter((_, j) => j !== i).map((rr) => rr.value.market)}
                 />
               ))}
               {recs.length === 0 ? (
