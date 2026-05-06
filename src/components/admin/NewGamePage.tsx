@@ -37,7 +37,7 @@ export function NewGamePage() {
     game_time: `${today} 19:00:00`,
     status: 'scheduled',
   })
-  const [recs, setRecs] = useState<RecFormValue[]>([EMPTY_REC])
+  const [recs, setRecs] = useState<RecFormValue[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   // Initialize team ids once teams load
@@ -80,7 +80,17 @@ export function NewGamePage() {
     setRecs((rs) => rs.filter((_, i) => i !== idx))
   }
   function addRec() {
-    setRecs((rs) => [...rs, EMPTY_REC])
+    setRecs((rs) => {
+      const taken = new Set(rs.map((r) => r.market))
+      const nextMarket = (['ml', 'spread', 'ou'] as const).find((m) => !taken.has(m)) ?? 'ml'
+      const next: RecFormValue = {
+        ...EMPTY_REC,
+        market: nextMarket,
+        pick: nextMarket === 'ou' ? 'over' : 'home',
+        line: nextMarket === 'ml' ? null : 0,
+      }
+      return [...rs, next]
+    })
   }
 
   return (
@@ -144,7 +154,8 @@ export function NewGamePage() {
               <button
                 type="button"
                 onClick={addRec}
-                className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
+                disabled={recs.length >= 3}
+                className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 + 新增推薦
               </button>
@@ -156,10 +167,11 @@ export function NewGamePage() {
                   value={r}
                   onChange={(next) => updateRec(i, next)}
                   onRemove={() => removeRec(i)}
+                  marketsTaken={recs.filter((_, j) => j !== i).map((rr) => rr.market)}
                 />
               ))}
               {recs.length === 0 ? (
-                <p className="text-sm text-[#94a3b8]">尚未新增推薦。</p>
+                <p className="text-sm text-[#fc8181]">⚠ 請至少加 1 條推薦,才能建立比賽。</p>
               ) : null}
             </div>
           </section>
@@ -174,11 +186,11 @@ export function NewGamePage() {
             </button>
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || recs.length === 0}
               onClick={handleSubmit}
               className="px-6 py-2 rounded text-sm font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-60"
             >
-              {submitting ? '儲存中…' : '儲存'}
+              {submitting ? '儲存中…' : recs.length === 0 ? '請先加推薦' : '儲存'}
             </button>
           </div>
         </>
