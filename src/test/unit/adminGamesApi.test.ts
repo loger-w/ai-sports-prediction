@@ -118,9 +118,23 @@ describe('adminGamesApi.createGames (batch)', () => {
     const supabase = { from: vi.fn(() => ({ insert })) } as unknown as SupabaseClient
     const api = makeAdminGamesApi(supabase)
 
-    const result = await api.createGames([])
+    const result = await api.createGames([
+      { sport_id: 'mlb', home_team_id: 'a', away_team_id: 'b', game_date: '2026-05-06', game_time: '2026-05-06 09:00:00', status: 'scheduled' },
+    ])
 
     expect(result).toEqual({ ids: [], error: err })
+  })
+
+  it('returns immediately without calling supabase when inputs is empty', async () => {
+    const insert = vi.fn()
+    const supabase = { from: vi.fn(() => ({ insert })) } as unknown as SupabaseClient
+    const api = makeAdminGamesApi(supabase)
+
+    const result = await api.createGames([])
+
+    expect(supabase.from).not.toHaveBeenCalled()
+    expect(insert).not.toHaveBeenCalled()
+    expect(result).toEqual({ ids: [], error: null })
   })
 })
 
@@ -146,5 +160,17 @@ describe('adminGamesApi.deleteGames (batch)', () => {
     const api = makeAdminGamesApi(supabase)
 
     expect(await api.deleteGames(['g1'])).toEqual({ error: err })
+  })
+
+  it('returns immediately without calling supabase when ids is empty', async () => {
+    const del = vi.fn()
+    const supabase = { from: vi.fn(() => ({ delete: del })) } as unknown as SupabaseClient
+    const api = makeAdminGamesApi(supabase)
+
+    const result = await api.deleteGames([])
+
+    expect(supabase.from).not.toHaveBeenCalled()
+    expect(del).not.toHaveBeenCalled()
+    expect(result).toEqual({ error: null })
   })
 })

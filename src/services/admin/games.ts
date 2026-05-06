@@ -44,6 +44,7 @@ export function makeAdminGamesApi(supabase: SupabaseClient): AdminGamesApi {
       return { id, error }
     },
     createGames: async (inputs) => {
+      if (inputs.length === 0) return { ids: [], error: null }
       const { data, error } = await supabase
         .from('games')
         .insert(inputs)
@@ -66,6 +67,7 @@ export function makeAdminGamesApi(supabase: SupabaseClient): AdminGamesApi {
       return { error }
     },
     deleteGames: async (ids) => {
+      if (ids.length === 0) return { error: null }
       const { error } = await supabase.from('games').delete().in('id', ids)
       return { error }
     },
