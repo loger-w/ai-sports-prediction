@@ -1,10 +1,34 @@
 import type { Audience, Market, Pick as RecPick } from '@/types/predictions/recommendation'
+import { AudienceToggle } from './AudienceToggle'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
+const LABEL = 'block text-xs text-[#94a3b8] font-bold tracking-wide uppercase mb-1.5'
 
-const FIELD =
-  'w-full px-3 py-2 rounded bg-[#0d1117] border border-[#1e2733] text-[#e2e8f0] focus:outline-none focus:border-[#00e5a0]'
-const LABEL = 'block text-xs text-[#94a3b8] font-bold tracking-wide mb-1'
+const MARKET_LABEL: Record<Market, string> = {
+  ml: 'ML',
+  spread: '讓分',
+  ou: '大小分',
+}
+
+const PICK_LABEL: Record<RecPick, string> = {
+  home: '主',
+  away: '客',
+  over: '大',
+  under: '小',
+}
+
+// 客 (away) on the LEFT, 主 (home) on the RIGHT — matches commit 48b0c1d.
+const MARKET_PICKS: Record<Market, RecPick[]> = {
+  ml: ['away', 'home'],
+  spread: ['away', 'home'],
+  ou: ['over', 'under'],
+}
+
+const LINE_LABEL: Record<Market, string> = {
+  ml: '',
+  spread: '讓分',
+  ou: '盤線',
+}
 
 export interface RecFormValue {
   market: Market
@@ -18,12 +42,7 @@ interface Props {
   value: RecFormValue
   onChange: (next: RecFormValue) => void
   onRemove: () => void
-}
-
-const MARKET_PICKS: Record<Market, RecPick[]> = {
-  ml: ['home', 'away'],
-  spread: ['home', 'away'],
-  ou: ['over', 'under'],
+  marketsTaken?: Market[]
 }
 
 function defaultsForMarket(market: Market): Pick<RecFormValue, 'pick' | 'line'> {
@@ -32,23 +51,95 @@ function defaultsForMarket(market: Market): Pick<RecFormValue, 'pick' | 'line'> 
   return { pick: 'over', line: 0 }
 }
 
-const AUDIENCE_LABEL: Record<Audience, string> = {
-  all: '全部',
-  premium: 'Premium 限',
+interface SegOption<T extends string> {
+  value: T
+  label: string
 }
 
-const LINE_LABEL: Record<Market, string> = {
-  ml: '',
-  spread: '讓分',
-  ou: '盤線',
+function Segmented<T extends string>({
+  groupLabel,
+  options,
+  value,
+  onChange,
+  disabledValues = [],
+}: {
+  groupLabel: string
+  options: SegOption<T>[]
+  value: T
+  onChange: (next: T) => void
+  disabledValues?: T[]
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={groupLabel}
+      className="inline-flex gap-1 bg-[#0a0a0f] border border-[#1e2733] rounded p-0.5"
+    >
+      {options.map((opt) => {
+        const active = value === opt.value
+        const disabled = disabledValues.includes(opt.value) && !active
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-disabled={disabled || undefined}
+            disabled={disabled}
+            onClick={() => {
+              if (disabled || active) return
+              onChange(opt.value)
+            }}
+            className={
+              active
+                ? 'px-3 py-1.5 rounded text-sm font-bold bg-[rgba(0,229,160,0.12)] text-[#00e5a0]'
+                : disabled
+                  ? 'px-3 py-1.5 rounded text-sm font-bold text-[#475569] cursor-not-allowed opacity-60'
+                  : 'px-3 py-1.5 rounded text-sm font-bold text-[#94a3b8] hover:text-[#e2e8f0]'
+            }
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
-export function RecommendationFormRow({ value, onChange, onRemove }: Props) {
+function StarRating({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+  return (
+    <div role="radiogroup" aria-label="星等" className="inline-flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => {
+        const lit = n <= value
+        return (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={n === value}
+            aria-label={`${n} 星`}
+            onClick={() => onChange(n)}
+            className={
+              lit
+                ? 'text-2xl text-[#00e5a0] cursor-pointer leading-none'
+                : 'text-2xl text-[#1e2733] cursor-pointer leading-none hover:text-[#475569]'
+            }
+          >
+            ★
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function RecommendationFormRow({ value, onChange, onRemove, marketsTaken = [] }: Props) {
   function patch(p: Partial<RecFormValue>) {
     onChange({ ...value, ...p })
   }
 
   function handleMarket(m: Market) {
+    if (m === value.market) return
     const d = defaultsForMarket(m)
     onChange({
       market: m,
@@ -62,87 +153,67 @@ export function RecommendationFormRow({ value, onChange, onRemove }: Props) {
   const lineLabel = LINE_LABEL[value.market]
 
   return (
-    <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-2 items-end" style={FONT}>
-      <div>
-        <label className={LABEL} htmlFor={`rec-market-${value.market}`}>盤口</label>
-        <select
-          id={`rec-market-${value.market}`}
-          aria-label="盤口"
-          className={FIELD}
-          value={value.market}
-          onChange={(e) => handleMarket(e.target.value as Market)}
-        >
-          <option value="ml">ML</option>
-          <option value="spread">讓分</option>
-          <option value="ou">大小分</option>
-        </select>
-      </div>
-      <div>
-        <label className={LABEL} htmlFor={`rec-pick-${value.market}`}>選邊</label>
-        <select
-          id={`rec-pick-${value.market}`}
-          aria-label="選邊"
-          className={FIELD}
-          value={value.pick}
-          onChange={(e) => patch({ pick: e.target.value as RecPick })}
-        >
-          {MARKET_PICKS[value.market].map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-      </div>
-      {lineLabel ? (
+    <div className="rounded border border-[#1e2733] bg-[#0d1117] p-4 space-y-3" style={FONT}>
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <div>
-          <label className={LABEL} htmlFor={`rec-line-${value.market}`}>{lineLabel}</label>
-          <input
-            id={`rec-line-${value.market}`}
-            aria-label={lineLabel}
-            type="number"
-            step="0.5"
-            className={FIELD}
-            value={value.line ?? 0}
-            onChange={(e) => patch({ line: parseFloat(e.target.value) })}
+          <span className={LABEL}>盤口</span>
+          <Segmented<Market>
+            groupLabel="盤口"
+            options={(['ml', 'spread', 'ou'] as Market[]).map((m) => ({
+              value: m,
+              label: MARKET_LABEL[m],
+            }))}
+            value={value.market}
+            onChange={handleMarket}
+            disabledValues={marketsTaken}
           />
         </div>
-      ) : (
-        <div />
-      )}
-      <div>
-        <label className={LABEL} htmlFor={`rec-stars-${value.market}`}>星等</label>
-        <select
-          id={`rec-stars-${value.market}`}
-          aria-label="星等"
-          className={FIELD}
-          value={String(value.stars)}
-          onChange={(e) => patch({ stars: parseInt(e.target.value, 10) })}
-        >
-          {[1, 2, 3, 4, 5].map((n) => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
+        <div>
+          <span className={LABEL}>選邊</span>
+          <Segmented<RecPick>
+            groupLabel="選邊"
+            options={MARKET_PICKS[value.market].map((p) => ({
+              value: p,
+              label: PICK_LABEL[p],
+            }))}
+            value={value.pick}
+            onChange={(p) => patch({ pick: p })}
+          />
+        </div>
+        {lineLabel ? (
+          <div>
+            <label className={LABEL} htmlFor={`rec-line-${value.market}`}>{lineLabel}</label>
+            <input
+              id={`rec-line-${value.market}`}
+              aria-label={lineLabel}
+              type="number"
+              step="0.5"
+              className="w-24 px-3 py-2 rounded bg-[#0a0a0f] border border-[#1e2733] text-[#e2e8f0] focus:outline-none focus:border-[#00e5a0]"
+              value={value.line ?? 0}
+              onChange={(e) => patch({ line: parseFloat(e.target.value) })}
+            />
+          </div>
+        ) : null}
       </div>
-      <div>
-        <label className={LABEL} htmlFor={`rec-audience-${value.market}`}>受眾</label>
-        <select
-          id={`rec-audience-${value.market}`}
-          aria-label="受眾"
-          className={FIELD}
-          value={value.audience}
-          onChange={(e) => patch({ audience: e.target.value as Audience })}
+
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div>
+          <span className={LABEL}>星等</span>
+          <StarRating value={value.stars} onChange={(n) => patch({ stars: n })} />
+        </div>
+        <div>
+          <span className={LABEL}>受眾</span>
+          <AudienceToggle value={value.audience} onChange={(a) => patch({ audience: a })} />
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="ml-auto px-3 py-2 rounded text-xs font-bold bg-[rgba(252,129,129,0.10)] text-[#fc8181] border border-[rgba(252,129,129,0.25)] hover:bg-[rgba(252,129,129,0.18)]"
+          aria-label="移除這條推薦"
         >
-          {(['all', 'premium'] as Audience[]).map((a) => (
-            <option key={a} value={a}>{AUDIENCE_LABEL[a]}</option>
-          ))}
-        </select>
+          移除
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="px-3 py-2 rounded text-sm font-bold bg-[rgba(252,129,129,0.1)] text-[#fc8181] border border-[rgba(252,129,129,0.25)] hover:bg-[rgba(252,129,129,0.18)]"
-        aria-label="移除這條推薦"
-      >
-        移除
-      </button>
     </div>
   )
 }
