@@ -1,20 +1,28 @@
 import { useMemo, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useQuery } from '@tanstack/react-query'
 import { fetchMlbScheduleByTaiwanDate, type MlbScheduleGame } from '@/services/mlb/scheduleApi'
 import { useTeams } from '@/hooks/useTeams'
-import { adminGamesApi } from '@/services/admin/adminApi'
 import { localToday } from '@/lib/timezone'
 import type { TeamRow } from '@/types/predictions/recommendation'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
 
-export function MlbScheduleImporter() {
-  const queryClient = useQueryClient()
+export interface ResolvedScheduleGame {
+  external_game_id: number
+  home_team: TeamRow
+  away_team: TeamRow
+  game_date_tw: string
+  game_time_tw: string
+}
+
+interface Props {
+  onSelectionConfirmed: (games: ResolvedScheduleGame[]) => void
+}
+
+export function MlbScheduleImporter({ onSelectionConfirmed }: Props) {
   const teamsQuery = useTeams('mlb')
   const [date, setDate] = useState(() => localToday())
   const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [submitting, setSubmitting] = useState(false)
 
   const scheduleQuery = useQuery({
     queryKey: ['mlb-schedule', date],
@@ -48,37 +56,17 @@ export function MlbScheduleImporter() {
     )
   }
 
-  async function handleImport() {
-    const toImport = games.filter((g) => selected.has(g.external_game_id) && isImportable(g))
-    if (toImport.length === 0) {
-      toast.info('沒有可匯入的比賽')
-      return
-    }
-    setSubmitting(true)
-    let ok = 0
-    const failures: string[] = []
-    for (const g of toImport) {
-      const home = teamByExternalId.get(g.home_team_external_id)!
-      const away = teamByExternalId.get(g.away_team_external_id)!
-      const { error } = await adminGamesApi.createGame({
-        sport_id: 'mlb',
-        home_team_id: home.id,
-        away_team_id: away.id,
-        game_date: g.game_date_tw,
-        game_time: g.game_time_tw,
-        status: 'scheduled',
-      })
-      if (error) {
-        failures.push(`${away.abbreviation} @ ${home.abbreviation}: ${error.message}`)
-      } else {
-        ok++
-      }
-    }
-    setSubmitting(false)
-    setSelected(new Set())
-    void queryClient.invalidateQueries({ queryKey: ['admin'] })
-    if (ok > 0) toast.success(`已匯入 ${ok} 場`)
-    if (failures.length > 0) toast.error(`失敗 ${failures.length} 場：${failures.join('；')}`)
+  function handleNext() {
+    const resolved: ResolvedScheduleGame[] = games
+      .filter((g) => selected.has(g.external_game_id) && isImportable(g))
+      .map((g) => ({
+        external_game_id: g.external_game_id,
+        home_team: teamByExternalId.get(g.home_team_external_id)!,
+        away_team: teamByExternalId.get(g.away_team_external_id)!,
+        game_date_tw: g.game_date_tw,
+        game_time_tw: g.game_time_tw,
+      }))
+    onSelectionConfirmed(resolved)
   }
 
   const importableSelected = games.filter(
@@ -89,7 +77,7 @@ export function MlbScheduleImporter() {
     <div className="space-y-4" style={FONT}>
       <div className="flex items-end gap-3">
         <div>
-          <label className="block text-xs text-[#94a3b8] mb-1">日期（台灣）</label>
+          <label className="block text-xs text-[#94a3b8] mb-1">日期(台灣)</label>
           <input
             type="date"
             value={date}
@@ -156,7 +144,7 @@ export function MlbScheduleImporter() {
                         <span className="text-[#fc8181]">
                           {g.away_team_name} @ {g.home_team_name}
                           <span className="text-xs ml-2">
-                            （無對應球隊：external_id={g.away_team_external_id}/{g.home_team_external_id}）
+                            (無對應球隊:external_id={g.away_team_external_id}/{g.home_team_external_id})
                           </span>
                         </span>
                       )}
@@ -173,11 +161,13 @@ export function MlbScheduleImporter() {
       <div className="flex justify-end">
         <button
           type="button"
-          disabled={submitting || importableSelected === 0}
-          onClick={handleImport}
+          disabled={importableSelected === 0}
+          onClick={handleNext}
           className="px-5 py-2 rounded text-sm font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-50"
         >
-          {submitting ? '匯入中…' : `批次建立 ${importableSelected} 場`}
+          {importableSelected === 0
+            ? '請先勾選比賽'
+            : `下一步:設定推薦 → (${importableSelected} 場)`}
         </button>
       </div>
     </div>
