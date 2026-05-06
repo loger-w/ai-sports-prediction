@@ -17,10 +17,17 @@ export interface AdminGamesApi {
     id: string | null
     error: { message: string } | null
   }>
+  createGames: (inputs: CreateGameInput[]) => Promise<{
+    ids: string[]
+    error: { message: string } | null
+  }>
   updateGame: (id: string, patch: UpdateGamePatch) => Promise<{
     error: { message: string } | null
   }>
   deleteGame: (id: string) => Promise<{
+    error: { message: string } | null
+  }>
+  deleteGames: (ids: string[]) => Promise<{
     error: { message: string } | null
   }>
 }
@@ -36,6 +43,14 @@ export function makeAdminGamesApi(supabase: SupabaseClient): AdminGamesApi {
       const id = (data?.id as string | undefined) ?? null
       return { id, error }
     },
+    createGames: async (inputs) => {
+      const { data, error } = await supabase
+        .from('games')
+        .insert(inputs)
+        .select('id')
+      const ids = ((data ?? []) as { id: string }[]).map((r) => r.id)
+      return { ids, error }
+    },
     updateGame: async (id, patch) => {
       const { error } = await supabase
         .from('games')
@@ -48,6 +63,10 @@ export function makeAdminGamesApi(supabase: SupabaseClient): AdminGamesApi {
         .from('games')
         .delete()
         .eq('id', id)
+      return { error }
+    },
+    deleteGames: async (ids) => {
+      const { error } = await supabase.from('games').delete().in('id', ids)
       return { error }
     },
   }
