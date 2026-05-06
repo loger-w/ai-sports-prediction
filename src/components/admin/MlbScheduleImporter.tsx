@@ -17,12 +17,13 @@ export interface ResolvedScheduleGame {
 
 interface Props {
   onSelectionConfirmed: (games: ResolvedScheduleGame[]) => void
+  initialSelected?: Set<number>
 }
 
-export function MlbScheduleImporter({ onSelectionConfirmed }: Props) {
+export function MlbScheduleImporter({ onSelectionConfirmed, initialSelected }: Props) {
   const teamsQuery = useTeams('mlb')
   const [date, setDate] = useState(() => localToday())
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<number>>(() => initialSelected ?? new Set())
 
   const scheduleQuery = useQuery({
     queryKey: ['mlb-schedule', date],
