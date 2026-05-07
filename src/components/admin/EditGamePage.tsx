@@ -48,6 +48,7 @@ interface EditRec extends RecFormValue {
   origMarket: Market | null
   result: RecResult | null
   state: RecState
+  prevState?: RecState
 }
 
 interface EditState {
@@ -184,7 +185,7 @@ export function EditGamePage({ gameId }: { gameId: string }) {
       const recs = s.recs.flatMap((r) => {
         if (r.key !== key) return [r]
         if (r.state === 'new') return []
-        return [{ ...r, state: 'deleted' as RecState }]
+        return [{ ...r, prevState: r.state, state: 'deleted' as RecState }]
       })
       return { ...s, recs }
     })
@@ -196,7 +197,7 @@ export function EditGamePage({ gameId }: { gameId: string }) {
       const recs = s.recs.map((r) => {
         if (r.key !== key) return r
         if (r.state !== 'deleted') return r
-        return { ...r, state: 'edited' as RecState }
+        return { ...r, state: r.prevState ?? 'existing', prevState: undefined }
       })
       return { ...s, recs }
     })

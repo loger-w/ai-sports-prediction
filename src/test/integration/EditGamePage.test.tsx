@@ -159,6 +159,15 @@ describe('EditGamePage — form mode', () => {
     expect(screen.queryByRole('button', { name: /取消刪除/ })).not.toBeInTheDocument()
   })
 
+  it('clicking 移除 then 取消刪除 on a clean existing rec leaves the page non-dirty', async () => {
+    await renderPage()
+    fireEvent.click(screen.getAllByRole('button', { name: /移除/ })[0])
+    fireEvent.click(screen.getByRole('button', { name: /取消刪除/ }))
+
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^捨棄變更$/ })).not.toBeInTheDocument()
+  })
+
   it('Save is disabled if all recs are marked deleted (and no new recs added)', async () => {
     await renderPage()
     const removeBtns = screen.getAllByRole('button', { name: /移除/ })
@@ -254,6 +263,12 @@ describe('EditGamePage — form mode', () => {
     fireEvent.click(screen.getByRole('link', { name: /返回比賽管理/ }))
 
     expect(screen.getByText(/有未儲存的變更/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '離開' }))
+
+    await waitFor(() => {
+      expect(mocks.navigate).toHaveBeenCalledWith({ to: '/admin' })
+    })
   })
 
   it('刪除整場 opens a destructive ConfirmDialog and calls deleteGame on confirm', async () => {
