@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
 import { RecommendationFormRow, type RecFormValue } from './RecommendationFormRow'
-import { MlbScheduleImporter } from './MlbScheduleImporter'
+import { BatchImportWizard } from './BatchImportWizard'
 import { useTeams } from '@/hooks/useTeams'
 import { adminGamesApi, adminRecommendationsApi } from '@/services/admin/adminApi'
 import { localToday } from '@/lib/timezone'
@@ -140,7 +140,7 @@ export function NewGamePage() {
 
       {mode === 'import' ? (
         <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6">
-          <MlbScheduleImporter />
+          <BatchImportWizard />
         </section>
       ) : (
         <>
