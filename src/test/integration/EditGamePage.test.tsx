@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { EditGamePage } from '@/components/admin/EditGamePage'
@@ -39,28 +39,16 @@ const stubTeams = [
   { id: 'sd',  sport_id: 'mlb', name_zh: '教士', abbreviation: 'SD',  logo_url: null, external_id: 2 },
 ]
 
-const mocks = vi.hoisted(() => {
-  const updateRecommendation = vi.fn()
-  const setRecommendationResult = vi.fn()
-  const deleteRecommendation = vi.fn()
-  const createRecommendations = vi.fn()
-  const updateGame = vi.fn()
-  const deleteGame = vi.fn()
-
-  const toastSuccess = vi.fn()
-  const toastError = vi.fn()
-
-  return {
-    updateRecommendation,
-    setRecommendationResult,
-    deleteRecommendation,
-    createRecommendations,
-    updateGame,
-    deleteGame,
-    toastSuccess,
-    toastError,
-  }
-})
+const mocks = vi.hoisted(() => ({
+  updateGame: vi.fn(),
+  deleteGame: vi.fn(),
+  createRecommendations: vi.fn(),
+  updateRecommendation: vi.fn(),
+  deleteRecommendation: vi.fn(),
+  toastSuccess: vi.fn(),
+  toastError: vi.fn(),
+  navigate: vi.fn(),
+}))
 
 vi.mock('@/lib/supabase', () => {
   const gamesSelect = {
@@ -85,10 +73,16 @@ vi.mock('@/lib/supabase', () => {
 })
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, ...rest }: Record<string, unknown>) => (
-    <a {...rest}>{children as React.ReactNode}</a>
+  Link: ({ children, onClick, to, ...rest }: Record<string, unknown>) => (
+    <a
+      href={typeof to === 'string' ? to : '#'}
+      onClick={onClick as React.MouseEventHandler}
+      {...rest}
+    >
+      {children as React.ReactNode}
+    </a>
   ),
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mocks.navigate,
 }))
 
 vi.mock('@/services/admin/adminApi', () => ({
@@ -97,16 +91,15 @@ vi.mock('@/services/admin/adminApi', () => ({
     deleteGame: (...args: unknown[]) => mocks.deleteGame(...args),
   },
   adminRecommendationsApi: {
-    updateRecommendation: (...args: unknown[]) => mocks.updateRecommendation(...args),
-    setRecommendationResult: (...args: unknown[]) => mocks.setRecommendationResult(...args),
-    deleteRecommendation: (...args: unknown[]) => mocks.deleteRecommendation(...args),
     createRecommendations: (...args: unknown[]) => mocks.createRecommendations(...args),
+    updateRecommendation: (...args: unknown[]) => mocks.updateRecommendation(...args),
+    deleteRecommendation: (...args: unknown[]) => mocks.deleteRecommendation(...args),
   },
 }))
 
 vi.mock('sonner', () => ({
   toast: {
-    success: (msg: string, opts?: unknown) => mocks.toastSuccess(msg, opts),
+    success: (msg: string) => mocks.toastSuccess(msg),
     error: (msg: string) => mocks.toastError(msg),
     info: vi.fn(),
   },
@@ -123,107 +116,155 @@ function makeWrapper() {
 async function renderPage() {
   const { Wrapper, client } = makeWrapper()
   const utils = render(<EditGamePage gameId="g1" />, { wrapper: Wrapper })
-  // Wait for the gameQuery to resolve and the page to render its rec rows.
   await waitFor(() => {
-    expect(screen.getAllByRole('group', { name: '受眾' })).toHaveLength(2)
+    expect(screen.getAllByRole('group', { name: '受眾' }).length).toBeGreaterThanOrEqual(2)
   })
   return { ...utils, client }
 }
 
-describe('EditGamePage — audience toggle', () => {
+describe('EditGamePage — form mode', () => {
   beforeEach(() => {
-    Object.values(mocks).forEach((m) => m.mockReset())
+    Object.values(mocks).forEach((m) => 'mockReset' in m && m.mockReset())
+    mocks.updateGame.mockResolvedValue({ error: null })
+    mocks.deleteGame.mockResolvedValue({ error: null })
+    mocks.createRecommendations.mockResolvedValue({ error: null })
     mocks.updateRecommendation.mockResolvedValue({ error: null })
+    mocks.deleteRecommendation.mockResolvedValue({ error: null })
   })
 
-  it('renders the AudienceToggle for each existing recommendation', async () => {
+  it('hydrates with both existing recs and a disabled (clean) Save button', async () => {
     await renderPage()
-    const groups = screen.getAllByRole('group', { name: '受眾' })
-    expect(groups).toHaveLength(2)
-    // First rec is 'all', second is 'premium'
-    const allBtns = screen.getAllByRole('button', { name: '公開' })
-    const premBtns = screen.getAllByRole('button', { name: 'Premium' })
-    expect(allBtns[0]).toHaveAttribute('aria-pressed', 'true')
-    expect(premBtns[0]).toHaveAttribute('aria-pressed', 'false')
-    expect(allBtns[1]).toHaveAttribute('aria-pressed', 'false')
-    expect(premBtns[1]).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getAllByRole('radiogroup', { name: '盤口' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeDisabled()
   })
 
-  it('clicking Premium on an all-row calls updateRecommendation and flips optimistically', async () => {
+  it('changing a pick on an existing rec marks the page dirty (Save enables)', async () => {
     await renderPage()
-    const premBtns = screen.getAllByRole('button', { name: 'Premium' })
-    fireEvent.click(premBtns[0]) // first row was 'all' → toggle to premium
+    const pickGroups = screen.getAllByRole('radiogroup', { name: '選邊' })
+    fireEvent.click(within(pickGroups[0]).getByRole('radio', { name: '客' }))
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeEnabled()
+  })
 
-    // optimistic flip
+  it('clicking 移除 on a rec marks it for deletion (replaces with 取消刪除)', async () => {
+    await renderPage()
+    const removeBtns = screen.getAllByRole('button', { name: /移除/ })
+    fireEvent.click(removeBtns[0])
+    expect(screen.getByRole('button', { name: /取消刪除/ })).toBeInTheDocument()
+  })
+
+  it('clicking 取消刪除 reverts the soft-delete', async () => {
+    await renderPage()
+    fireEvent.click(screen.getAllByRole('button', { name: /移除/ })[0])
+    fireEvent.click(screen.getByRole('button', { name: /取消刪除/ }))
+    expect(screen.queryByRole('button', { name: /取消刪除/ })).not.toBeInTheDocument()
+  })
+
+  it('Save is disabled if all recs are marked deleted (and no new recs added)', async () => {
+    await renderPage()
+    const removeBtns = screen.getAllByRole('button', { name: /移除/ })
+    fireEvent.click(removeBtns[0])
+    fireEvent.click(removeBtns[1])
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeDisabled()
+    expect(screen.getByText(/比賽必須至少保留 1 條推薦/)).toBeInTheDocument()
+  })
+
+  it('+ 加推薦 adds a new rec defaulting to an unused market', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /\+ 加推薦/ }))
+    const allMarketGroups = screen.getAllByRole('radiogroup', { name: '盤口' })
+    expect(allMarketGroups).toHaveLength(3)
+    const newRow = allMarketGroups[2]
+    expect(within(newRow).getByRole('radio', { name: '大小分' })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('Save success calls update + create + delete in order then re-hydrates', async () => {
+    await renderPage()
+    fireEvent.click(within(screen.getAllByRole('radiogroup', { name: '選邊' })[0]).getByRole('radio', { name: '客' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /移除/ })[1])
+    fireEvent.click(screen.getByRole('button', { name: /\+ 加推薦/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: /^儲存變更$/ }))
+
     await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: 'Premium' })[0]).toHaveAttribute(
-        'aria-pressed',
-        'true',
+      expect(mocks.toastSuccess).toHaveBeenCalled()
+    })
+    expect(mocks.updateRecommendation).toHaveBeenCalledWith(
+      'g1',
+      'ml',
+      expect.objectContaining({ pick: 'away', result: null }),
+    )
+    expect(mocks.createRecommendations).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ game_id: 'g1', market: 'ou' })]),
+    )
+    expect(mocks.deleteRecommendation).toHaveBeenCalledWith('g1', 'spread')
+  })
+
+  it('clicking a result button on an existing rec stages the result and Save commits it', async () => {
+    await renderPage()
+    const winButtons = screen.getAllByRole('button', { name: '贏' })
+    expect(winButtons.length).toBeGreaterThanOrEqual(2)
+    fireEvent.click(winButtons[0])
+
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /^儲存變更$/ }))
+
+    await waitFor(() => {
+      expect(mocks.updateRecommendation).toHaveBeenCalledWith(
+        'g1',
+        'ml',
+        expect.objectContaining({ result: 'win' }),
       )
     })
-
-    await waitFor(() => {
-      expect(mocks.updateRecommendation).toHaveBeenCalledWith('g1', 'ml', { audience: 'premium' })
-    })
-
-    // success toast called with action that has '復原' label
-    await waitFor(() => {
-      expect(mocks.toastSuccess).toHaveBeenCalled()
-    })
-    const [msg, opts] = mocks.toastSuccess.mock.calls[0]
-    expect(msg).toContain('Premium')
-    expect((opts as { action: { label: string } }).action.label).toBe('復原')
+    expect(mocks.toastSuccess).toHaveBeenCalled()
   })
 
-  it('invoking the toast undo action toggles back to the previous audience', async () => {
-    await renderPage()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Premium' })[0])
-
-    await waitFor(() => {
-      expect(mocks.toastSuccess).toHaveBeenCalled()
-    })
-
-    const [, opts] = mocks.toastSuccess.mock.calls[0]
-    const action = (opts as { action: { onClick: () => void } }).action
-
-    mocks.updateRecommendation.mockClear()
-    action.onClick()
-
-    await waitFor(() => {
-      expect(mocks.updateRecommendation).toHaveBeenCalledWith('g1', 'ml', { audience: 'all' })
-    })
-  })
-
-  it('on update failure the cache reverts and toast.error fires', async () => {
+  it('Save failure surfaces toast and keeps the page on edit', async () => {
     mocks.updateRecommendation.mockResolvedValueOnce({ error: { message: 'denied' } })
     await renderPage()
+    fireEvent.click(within(screen.getAllByRole('radiogroup', { name: '選邊' })[0]).getByRole('radio', { name: '客' }))
+    fireEvent.click(screen.getByRole('button', { name: /^儲存變更$/ }))
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Premium' })[0])
-
-    // optimistic flip first
-    await waitFor(() => {
-      expect(screen.getAllByRole('button', { name: 'Premium' })[0]).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
-    })
-
-    // then revert after the error
     await waitFor(() => {
       expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('denied'))
     })
-    expect(screen.getAllByRole('button', { name: '公開' })[0]).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
     expect(mocks.toastSuccess).not.toHaveBeenCalled()
   })
 
-  it('clicking the already-active segment does NOT call the API', async () => {
+  it('捨棄變更 opens a ConfirmDialog and resets state on confirm', async () => {
     await renderPage()
-    fireEvent.click(screen.getAllByRole('button', { name: '公開' })[0]) // already active
-    // Give any pending microtasks a chance
-    await Promise.resolve()
-    expect(mocks.updateRecommendation).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getAllByRole('radiogroup', { name: '選邊' })[0]).getByRole('radio', { name: '客' }))
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /^捨棄變更$/ }))
+    expect(screen.getByText(/捨棄所有未儲存的變更/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '確認' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText(/捨棄所有未儲存的變更/)).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /^儲存變更$/ })).toBeDisabled()
+  })
+
+  it('clicking the ← back link while dirty opens the leave dialog', async () => {
+    await renderPage()
+    fireEvent.click(within(screen.getAllByRole('radiogroup', { name: '選邊' })[0]).getByRole('radio', { name: '客' }))
+
+    fireEvent.click(screen.getByRole('link', { name: /返回比賽管理/ }))
+
+    expect(screen.getByText(/有未儲存的變更/)).toBeInTheDocument()
+  })
+
+  it('刪除整場 opens a destructive ConfirmDialog and calls deleteGame on confirm', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /^刪除整場$/ }))
+    expect(screen.getByText(/刪除整場比賽/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '確認' }))
+
+    await waitFor(() => {
+      expect(mocks.deleteGame).toHaveBeenCalledWith('g1')
+    })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/admin' })
   })
 })

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
 import { RecommendationFormRow, type RecFormValue } from './RecommendationFormRow'
 import { ResultEntry } from './ResultEntry'
-import { AudienceToggle } from './AudienceToggle'
+import { ConfirmDialog } from './ConfirmDialog'
 import { useTeams } from '@/hooks/useTeams'
 import { adminGamesApi, adminRecommendationsApi } from '@/services/admin/adminApi'
 import { supabase } from '@/lib/supabase'
@@ -18,6 +18,7 @@ import type {
 } from '@/types/predictions/recommendation'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' as const }
+const ALL_MARKETS = ['ml', 'spread', 'ou'] as const
 
 interface ExistingRec {
   market: Market
@@ -38,6 +39,57 @@ interface ExistingGame {
   game_time: string
   status: GameStatus
   recommendations: ExistingRec[]
+}
+
+type RecState = 'existing' | 'edited' | 'new' | 'deleted'
+
+interface EditRec extends RecFormValue {
+  key: string
+  origMarket: Market | null
+  result: RecResult | null
+  state: RecState
+}
+
+interface EditState {
+  game: GameFormValue
+  gameDirty: boolean
+  recs: EditRec[]
+}
+
+function nextDefaultRec(taken: Set<string>): RecFormValue {
+  const m = ALL_MARKETS.find((x) => !taken.has(x)) ?? 'ml'
+  return {
+    market: m,
+    pick: m === 'ou' ? 'over' : 'home',
+    line: m === 'ml' ? null : 0,
+    stars: 3,
+    audience: 'all',
+  }
+}
+
+function hydrate(g: ExistingGame): EditState {
+  return {
+    game: {
+      sport_id: g.sport_id,
+      home_team_id: g.home_team_id,
+      away_team_id: g.away_team_id,
+      game_date: g.game_date,
+      game_time: g.game_time,
+      status: g.status,
+    },
+    gameDirty: false,
+    recs: g.recommendations.map((r) => ({
+      key: crypto.randomUUID(),
+      market: r.market,
+      pick: r.pick,
+      line: r.line,
+      stars: r.stars,
+      audience: r.audience,
+      result: r.result,
+      origMarket: r.market,
+      state: 'existing',
+    })),
+  }
 }
 
 export function EditGamePage({ gameId }: { gameId: string }) {
@@ -61,25 +113,17 @@ export function EditGamePage({ gameId }: { gameId: string }) {
     },
   })
 
-  const [game, setGame] = useState<GameFormValue | null>(null)
-  const [newRecs, setNewRecs] = useState<RecFormValue[]>([])
-  const [savingGame, setSavingGame] = useState(false)
-  const [pendingMarket, setPendingMarket] = useState<Market | null>(null)
+  const [state, setState] = useState<EditState | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [discardOpen, setDiscardOpen] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [deleteGameOpen, setDeleteGameOpen] = useState(false)
 
   useEffect(() => {
-    if (!gameQuery.data) return
-    const g = gameQuery.data
-    setGame({
-      sport_id: g.sport_id,
-      home_team_id: g.home_team_id,
-      away_team_id: g.away_team_id,
-      game_date: g.game_date,
-      game_time: g.game_time,
-      status: g.status,
-    })
-  }, [gameQuery.data])
+    if (gameQuery.data && !state) setState(hydrate(gameQuery.data))
+  }, [gameQuery.data, state])
 
-  if (gameQuery.isLoading || !game) {
+  if (gameQuery.isLoading || !state) {
     return <p className="text-[#94a3b8] py-8" style={FONT}>載入中…</p>
   }
   if (gameQuery.error) {
@@ -90,27 +134,167 @@ export function EditGamePage({ gameId }: { gameId: string }) {
     )
   }
 
-  const existingRecs = gameQuery.data?.recommendations ?? []
+  const activeRecs = state.recs.filter((r) => r.state !== 'deleted')
+  const activeMarkets = activeRecs.map((r) => r.market)
+  const hasDuplicateMarket = new Set(activeMarkets).size !== activeMarkets.length
+  const hasNoActive = activeRecs.length === 0
+  const isDirty =
+    state.gameDirty ||
+    state.recs.some((r) => r.state !== 'existing')
 
-  async function saveGame() {
-    if (!game) return
-    setSavingGame(true)
-    const { error } = await adminGamesApi.updateGame(gameId, game)
-    setSavingGame(false)
-    if (error) {
-      toast.error(`儲存失敗：${error.message}`)
-      return
-    }
-    toast.success('比賽已更新')
-    void queryClient.invalidateQueries({ queryKey: ['admin'] })
-    void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
+  const validationMsg = hasNoActive
+    ? '比賽必須至少保留 1 條推薦'
+    : hasDuplicateMarket
+      ? '盤口重複,請調整為三種不同盤口'
+      : null
+
+  function patchGame(next: GameFormValue) {
+    setState((s) => (s ? { ...s, game: next, gameDirty: true } : s))
   }
 
-  async function deleteGame() {
-    if (!confirm('確定要刪除這場比賽？相關推薦與投票也會一併移除。')) return
+  function patchRec(key: string, value: RecFormValue) {
+    setState((s) => {
+      if (!s) return s
+      const recs = s.recs.map((r) => {
+        if (r.key !== key) return r
+        const nextState: RecState =
+          r.state === 'new' ? 'new' : r.state === 'deleted' ? r.state : 'edited'
+        return { ...r, ...value, state: nextState }
+      })
+      return { ...s, recs }
+    })
+  }
+
+  function setResult(key: string, result: RecResult | null) {
+    setState((s) => {
+      if (!s) return s
+      const recs = s.recs.map((r) => {
+        if (r.key !== key) return r
+        const nextState: RecState =
+          r.state === 'new' ? 'new' : r.state === 'deleted' ? r.state : 'edited'
+        return { ...r, result, state: nextState }
+      })
+      return { ...s, recs }
+    })
+  }
+
+  function softRemoveRec(key: string) {
+    setState((s) => {
+      if (!s) return s
+      const recs = s.recs.flatMap((r) => {
+        if (r.key !== key) return [r]
+        if (r.state === 'new') return []
+        return [{ ...r, state: 'deleted' as RecState }]
+      })
+      return { ...s, recs }
+    })
+  }
+
+  function undoRemoveRec(key: string) {
+    setState((s) => {
+      if (!s) return s
+      const recs = s.recs.map((r) => {
+        if (r.key !== key) return r
+        if (r.state !== 'deleted') return r
+        return { ...r, state: 'edited' as RecState }
+      })
+      return { ...s, recs }
+    })
+  }
+
+  function addRec() {
+    setState((s) => {
+      if (!s) return s
+      // Include ALL recs (even deleted) so new rec defaults to a truly fresh market
+      const taken = new Set(s.recs.map((r) => r.market))
+      const def = nextDefaultRec(taken)
+      const newRow: EditRec = {
+        ...def,
+        key: crypto.randomUUID(),
+        origMarket: null,
+        result: null,
+        state: 'new',
+      }
+      return { ...s, recs: [...s.recs, newRow] }
+    })
+  }
+
+  async function save() {
+    if (!state || hasNoActive || hasDuplicateMarket) return
+    setSaving(true)
+    try {
+      if (state.gameDirty) {
+        const { error } = await adminGamesApi.updateGame(gameId, state.game)
+        if (error) throw new Error(`比賽資訊:${error.message}`)
+      }
+      const newRecs = state.recs.filter((r) => r.state === 'new')
+      if (newRecs.length > 0) {
+        const { error } = await adminRecommendationsApi.createRecommendations(
+          newRecs.map((r) => ({
+            game_id: gameId,
+            market: r.market,
+            pick: r.pick,
+            line: r.line,
+            stars: r.stars,
+            audience: r.audience,
+          })),
+        )
+        if (error) throw new Error(`新增推薦:${error.message}`)
+      }
+      const edited = state.recs.filter((r) => r.state === 'edited' && r.origMarket !== null)
+      for (const r of edited) {
+        const { error } = await adminRecommendationsApi.updateRecommendation(
+          gameId,
+          r.origMarket!,
+          {
+            pick: r.pick,
+            line: r.line,
+            stars: r.stars,
+            audience: r.audience,
+            result: r.result,
+          },
+        )
+        if (error) throw new Error(`更新推薦 ${r.origMarket}:${error.message}`)
+      }
+      const deleted = state.recs.filter((r) => r.state === 'deleted' && r.origMarket !== null)
+      for (const r of deleted) {
+        const { error } = await adminRecommendationsApi.deleteRecommendation(
+          gameId,
+          r.origMarket!,
+        )
+        if (error) throw new Error(`刪除推薦 ${r.origMarket}:${error.message}`)
+      }
+
+      toast.success('已儲存')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'games', 'recent'] })
+      void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
+      setState(null)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '未知錯誤'
+      toast.error(`儲存失敗:${msg}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function discardChanges() {
+    if (!gameQuery.data) return
+    setState(hydrate(gameQuery.data))
+    setDiscardOpen(false)
+  }
+
+  function handleBackClick(e: React.MouseEvent) {
+    if (!isDirty) return
+    e.preventDefault()
+    setLeaveOpen(true)
+  }
+
+  async function confirmDeleteGame() {
+    setDeleteGameOpen(false)
     const { error } = await adminGamesApi.deleteGame(gameId)
     if (error) {
-      toast.error(`刪除失敗：${error.message}`)
+      toast.error(`刪除失敗:${error.message}`)
       return
     }
     toast.success('比賽已刪除')
@@ -118,211 +302,158 @@ export function EditGamePage({ gameId }: { gameId: string }) {
     navigate({ to: '/admin' })
   }
 
-  async function setResult(market: Market, result: RecResult | null) {
-    const { error } = await adminRecommendationsApi.setRecommendationResult(
-      gameId,
-      market,
-      result,
-    )
-    if (error) {
-      toast.error(`寫入結果失敗：${error.message}`)
-      return
-    }
-    toast.success('結果已更新')
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
-    void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
-  }
-
-  async function setAudience(market: Market, next: Audience) {
-    // Always read the latest cache value (avoid stale-closure on the toast undo path)
-    const current = queryClient.getQueryData<ExistingGame>(['admin', 'game', gameId])
-    const prev = current?.recommendations.find((r) => r.market === market)?.audience
-    if (!prev || prev === next) return
-
-    const writeCache = (audience: Audience) => {
-      queryClient.setQueryData<ExistingGame>(['admin', 'game', gameId], (old) =>
-        old
-          ? {
-              ...old,
-              recommendations: old.recommendations.map((r) =>
-                r.market === market ? { ...r, audience } : r,
-              ),
-            }
-          : old,
-      )
-    }
-
-    writeCache(next)
-    setPendingMarket(market)
-    const { error } = await adminRecommendationsApi.updateRecommendation(gameId, market, {
-      audience: next,
-    })
-    setPendingMarket(null)
-
-    if (error) {
-      writeCache(prev)
-      toast.error(`切換受眾失敗：${error.message}`)
-      return
-    }
-
-    toast.success(next === 'premium' ? '已切換為 Premium 限定' : '已切換為公開', {
-      action: {
-        label: '復原',
-        onClick: () => {
-          void setAudience(market, prev)
-        },
-      },
-      duration: 5000,
-    })
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'games', 'recent'] })
-    void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
-  }
-
-  async function deleteExisting(market: Market) {
-    if (!confirm(`刪除 ${market} 推薦？`)) return
-    const { error } = await adminRecommendationsApi.deleteRecommendation(gameId, market)
-    if (error) {
-      toast.error(`刪除失敗：${error.message}`)
-      return
-    }
-    toast.success('已刪除')
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
-  }
-
-  async function saveNewRecs() {
-    if (newRecs.length === 0) return
-    const { error } = await adminRecommendationsApi.createRecommendations(
-      newRecs.map((r) => ({ ...r, game_id: gameId })),
-    )
-    if (error) {
-      toast.error(`新增失敗：${error.message}`)
-      return
-    }
-    setNewRecs([])
-    toast.success('已新增')
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
-  }
-
   return (
     <div className="py-8 px-4 space-y-6" style={FONT}>
       <Link
         to="/admin"
+        onClick={handleBackClick}
         className="inline-flex items-center gap-1 text-sm text-[#00e5a0] hover:underline"
       >
         ← 返回比賽管理
       </Link>
+
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-[#e2e8f0]">編輯比賽</h1>
           <p className="text-sm text-[#94a3b8] mt-1">id: {gameId}</p>
         </div>
-        <button
-          type="button"
-          onClick={deleteGame}
-          className="px-4 py-2 rounded text-sm font-bold bg-[rgba(252,129,129,0.10)] text-[#fc8181] border border-[rgba(252,129,129,0.30)] hover:bg-[rgba(252,129,129,0.20)]"
-        >
-          刪除整場
-        </button>
-      </header>
-
-      <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold text-[#e2e8f0]">比賽資訊</h2>
+        <div className="flex gap-2">
+          {isDirty ? (
+            <button
+              type="button"
+              onClick={() => setDiscardOpen(true)}
+              className="px-4 py-2 rounded text-sm font-bold bg-transparent text-[#94a3b8] border border-[#1e2733] hover:bg-[#0d1117]"
+            >
+              捨棄變更
+            </button>
+          ) : null}
           <button
             type="button"
-            disabled={savingGame}
-            onClick={saveGame}
-            className="px-4 py-1.5 rounded text-xs font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-60"
+            disabled={saving || !isDirty || hasNoActive || hasDuplicateMarket}
+            onClick={save}
+            className="px-4 py-2 rounded text-sm font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {savingGame ? '儲存中…' : '儲存比賽'}
+            {saving ? '儲存中…' : '儲存變更'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeleteGameOpen(true)}
+            className="px-4 py-2 rounded text-sm font-bold bg-[rgba(252,129,129,0.10)] text-[#fc8181] border border-[rgba(252,129,129,0.30)] hover:bg-[rgba(252,129,129,0.20)]"
+          >
+            刪除整場
           </button>
         </div>
+      </header>
+
+      <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6 space-y-4">
+        <h2 className="text-base font-bold text-[#e2e8f0]">比賽資訊</h2>
         {teamsQuery.isLoading ? (
           <p className="text-[#94a3b8]">載入隊伍…</p>
         ) : (
-          <GameForm value={game} onChange={setGame} teams={teamsQuery.data ?? []} />
-        )}
-      </section>
-
-      <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6 space-y-3">
-        <h2 className="text-base font-bold text-[#e2e8f0]">既有推薦</h2>
-        {existingRecs.length === 0 ? (
-          <p className="text-sm text-[#94a3b8]">沒有推薦。</p>
-        ) : (
-          <div className="space-y-3">
-            {existingRecs.map((r) => (
-              <div
-                key={r.market}
-                className="flex items-center justify-between gap-4 p-3 bg-[#0d1117] border border-[#1e2733] rounded"
-              >
-                <div className="text-sm flex-1 flex items-center gap-3">
-                  <div>
-                    <span className="text-[#e2e8f0] font-bold">{r.market}</span>{' '}
-                    <span className="text-[#94a3b8]">
-                      {r.pick} {r.line ?? ''} · {r.stars}★ · {r.source}
-                    </span>
-                  </div>
-                  <AudienceToggle
-                    value={r.audience}
-                    onChange={(next) => {
-                      void setAudience(r.market, next)
-                    }}
-                    disabled={pendingMarket === r.market}
-                  />
-                </div>
-                <ResultEntry
-                  market={r.market}
-                  value={r.result}
-                  onChange={(next) => setResult(r.market, next)}
-                />
-                <button
-                  type="button"
-                  onClick={() => deleteExisting(r.market)}
-                  className="px-3 py-1 rounded text-xs font-bold bg-[rgba(252,129,129,0.10)] text-[#fc8181] border border-[rgba(252,129,129,0.25)] hover:bg-[rgba(252,129,129,0.20)]"
-                >
-                  刪
-                </button>
-              </div>
-            ))}
-          </div>
+          <GameForm value={state.game} onChange={patchGame} teams={teamsQuery.data ?? []} />
         )}
       </section>
 
       <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-[#e2e8f0]">新增推薦</h2>
+          <h2 className="text-base font-bold text-[#e2e8f0]">推薦</h2>
           <button
             type="button"
-            onClick={() => setNewRecs((rs) => [...rs, { market: 'ml', pick: 'home', line: null, stars: 3, audience: 'all' }])}
-            className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
+            disabled={activeMarkets.length >= 3}
+            onClick={addRec}
+            className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            + 加一條
+            + 加推薦
           </button>
         </div>
-        {newRecs.length > 0 && (
-          <>
-            <div className="space-y-3">
-              {newRecs.map((r, i) => (
-                <RecommendationFormRow
-                  key={i}
-                  value={r}
-                  onChange={(next) => setNewRecs((rs) => rs.map((x, j) => (j === i ? next : x)))}
-                  onRemove={() => setNewRecs((rs) => rs.filter((_, j) => j !== i))}
-                />
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={saveNewRecs}
-                className="px-4 py-1.5 rounded text-xs font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a]"
-              >
-                儲存新推薦
-              </button>
-            </div>
-          </>
+
+        {state.recs.length === 0 ? (
+          <p className="text-sm text-[#fc8181]">⚠ 比賽必須至少保留 1 條推薦</p>
+        ) : (
+          <div className="space-y-3">
+            {state.recs.map((r) => {
+              const isDeleted = r.state === 'deleted'
+              const otherMarkets = state.recs
+                .filter((rr) => rr.key !== r.key && rr.state !== 'deleted')
+                .map((rr) => rr.market)
+              return (
+                <div
+                  key={r.key}
+                  className={isDeleted ? 'opacity-40 line-through pointer-events-none relative' : ''}
+                >
+                  {isDeleted ? (
+                    <div className="absolute right-2 top-2 z-10 pointer-events-auto">
+                      <button
+                        type="button"
+                        onClick={() => undoRemoveRec(r.key)}
+                        className="px-3 py-1 rounded text-xs font-bold bg-transparent text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.10)]"
+                      >
+                        ↩ 取消刪除
+                      </button>
+                    </div>
+                  ) : null}
+                  <RecommendationFormRow
+                    value={{
+                      market: r.market,
+                      pick: r.pick,
+                      line: r.line,
+                      stars: r.stars,
+                      audience: r.audience,
+                    }}
+                    onChange={(next) => patchRec(r.key, next)}
+                    onRemove={() => softRemoveRec(r.key)}
+                    marketsTaken={otherMarkets}
+                  />
+                  {r.state !== 'new' ? (
+                    <div className="mt-2 pl-1 flex items-center gap-3">
+                      <span className="text-xs text-[#94a3b8] font-bold tracking-wide uppercase">結果</span>
+                      <ResultEntry
+                        market={r.market}
+                        value={r.result}
+                        onChange={(next) => setResult(r.key, next)}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
         )}
+
+        {validationMsg ? (
+          <p className="text-sm text-[#fc8181]">⚠ {validationMsg}</p>
+        ) : null}
       </section>
+
+      <ConfirmDialog
+        open={discardOpen}
+        title="捨棄所有未儲存的變更?"
+        description="所有本次的修改都會回到上次儲存的狀態。"
+        onConfirm={discardChanges}
+        onCancel={() => setDiscardOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="離開頁面?"
+        description="你有未儲存的變更,離開後會遺失。"
+        confirmLabel="離開"
+        cancelLabel="留在這"
+        onConfirm={() => {
+          setLeaveOpen(false)
+          navigate({ to: '/admin' })
+        }}
+        onCancel={() => setLeaveOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={deleteGameOpen}
+        title="刪除整場比賽?"
+        description="這場的推薦與投票也會一併移除。"
+        destructive
+        onConfirm={confirmDeleteGame}
+        onCancel={() => setDeleteGameOpen(false)}
+      />
     </div>
   )
 }
