@@ -120,7 +120,10 @@ export function BatchImportWizard() {
     const { ids, error: gErr } = await adminGamesApi.createGames(games)
     if (gErr || ids.length !== allEntries.length) {
       setSubmitting(false)
-      toast.error(`建立比賽失敗:${gErr?.message ?? '未知錯誤'}`)
+      const msg =
+        gErr?.message ??
+        `預期建立 ${allEntries.length} 場,實際只回傳 ${ids.length} 個 ID`
+      toast.error(`建立比賽失敗:${msg}`)
       return
     }
 
