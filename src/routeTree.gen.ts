@@ -21,6 +21,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as LangPredictionsRouteRouteImport } from './routes/$lang/predictions/route'
 import { Route as LangAccuracyRouteRouteImport } from './routes/$lang/accuracy/route'
 import { Route as AdminGamesNewRouteImport } from './routes/admin/games.new'
+import { Route as AdminGamesByDateRouteImport } from './routes/admin/games.by-date'
 import { Route as AdminGamesGameIdRouteImport } from './routes/admin/games.$gameId'
 
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -83,6 +84,11 @@ const AdminGamesNewRoute = AdminGamesNewRouteImport.update({
   path: '/games/new',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminGamesByDateRoute = AdminGamesByDateRouteImport.update({
+  id: '/games/by-date',
+  path: '/games/by-date',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminGamesGameIdRoute = AdminGamesGameIdRouteImport.update({
   id: '/games/$gameId',
   path: '/games/$gameId',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/games/$gameId': typeof AdminGamesGameIdRoute
+  '/admin/games/by-date': typeof AdminGamesByDateRoute
   '/admin/games/new': typeof AdminGamesNewRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/admin': typeof AdminIndexRoute
   '/admin/games/$gameId': typeof AdminGamesGameIdRoute
+  '/admin/games/by-date': typeof AdminGamesByDateRoute
   '/admin/games/new': typeof AdminGamesNewRoute
 }
 export interface FileRoutesById {
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/games/$gameId': typeof AdminGamesGameIdRoute
+  '/admin/games/by-date': typeof AdminGamesByDateRoute
   '/admin/games/new': typeof AdminGamesNewRoute
 }
 export interface FileRouteTypes {
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/admin/'
     | '/admin/games/$gameId'
+    | '/admin/games/by-date'
     | '/admin/games/new'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/admin'
     | '/admin/games/$gameId'
+    | '/admin/games/by-date'
     | '/admin/games/new'
   id:
     | '__root__'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/admin/'
     | '/admin/games/$gameId'
+    | '/admin/games/by-date'
     | '/admin/games/new'
   fileRoutesById: FileRoutesById
 }
@@ -277,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGamesNewRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/games/by-date': {
+      id: '/admin/games/by-date'
+      path: '/games/by-date'
+      fullPath: '/admin/games/by-date'
+      preLoaderRoute: typeof AdminGamesByDateRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/games/$gameId': {
       id: '/admin/games/$gameId'
       path: '/games/$gameId'
@@ -305,6 +324,7 @@ interface AdminRouteRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminGamesGameIdRoute: typeof AdminGamesGameIdRoute
+  AdminGamesByDateRoute: typeof AdminGamesByDateRoute
   AdminGamesNewRoute: typeof AdminGamesNewRoute
 }
 
@@ -312,6 +332,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminGamesGameIdRoute: AdminGamesGameIdRoute,
+  AdminGamesByDateRoute: AdminGamesByDateRoute,
   AdminGamesNewRoute: AdminGamesNewRoute,
 }
 

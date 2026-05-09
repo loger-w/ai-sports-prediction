@@ -1,0 +1,309 @@
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
+import dayjs from 'dayjs'
+import { CalendarDots } from '@phosphor-icons/react'
+import { localToday } from '@/lib/timezone'
+import { useTranslation } from '@/lib/i18n'
+import { useDatesWithRecommendations } from '@/hooks/predictions/useDatesWithRecommendations'
+import { dateChipStyles } from '@/components/predictions/dateChipStyles'
+
+const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
+
+function buildDateRange(referenceDate: string): string[] {
+  const dates: string[] = []
+  for (let i = -7; i <= 6; i++) {
+    dates.push(dayjs(referenceDate).add(i, 'day').format('YYYY-MM-DD'))
+  }
+  return dates
+}
+
+function getDateOpacity(date: string, todayStr: string): number {
+  const diff = Math.abs(dayjs(date).diff(dayjs(todayStr), 'day'))
+  if (diff === 0) return 1
+  if (diff <= 2) return 0.85
+  if (diff <= 4) return 0.55
+  return 0.3
+}
+
+function formatMonth(d: dayjs.Dayjs): string {
+  return `${d.year()}年${d.month() + 1}月`
+}
+
+interface DateChipProps {
+  date: string
+  isToday: boolean
+  isSelected: boolean
+  hasGames: boolean
+  opacity: number
+  todayLabel: string
+  weekdayLabel: string
+  dayNum: number
+  buttonRef?: RefObject<HTMLButtonElement | null>
+  onSelect: (date: string) => void
+}
+
+const DateChip = memo(function DateChip({
+  date,
+  isToday,
+  isSelected,
+  hasGames,
+  opacity,
+  todayLabel,
+  weekdayLabel,
+  dayNum,
+  buttonRef,
+  onSelect,
+}: DateChipProps) {
+  const styles = dateChipStyles({ isToday, isSelected, hasGames, opacity })
+  return (
+    <button
+      ref={buttonRef}
+      onClick={() => onSelect(date)}
+      className="flex-shrink-0 relative flex flex-col items-center justify-center rounded-[6px] min-w-[44px] h-[44px]"
+      style={styles.container}
+    >
+      <span style={styles.weekdayLabel}>{weekdayLabel}</span>
+      <span style={styles.dayNumber}>{dayNum}</span>
+      {styles.showTodayLabel && <span style={styles.todayLabel}>{todayLabel}</span>}
+      {styles.showHasGamesDot && <span style={styles.hasGamesDot} />}
+    </button>
+  )
+})
+
+interface CalendarDayProps {
+  dateStr: string
+  dayNum: number
+  isSelected: boolean
+  isToday: boolean
+  todayLabel: string
+  onSelect: (dateStr: string) => void
+}
+
+const CalendarDay = memo(function CalendarDay({
+  dateStr,
+  dayNum,
+  isSelected,
+  isToday,
+  todayLabel,
+  onSelect,
+}: CalendarDayProps) {
+  return (
+    <button
+      onClick={() => onSelect(dateStr)}
+      style={{
+        background: isSelected ? '#00e5a0' : 'transparent',
+        borderRadius: '4px',
+        padding: '4px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1px',
+        minHeight: '24px',
+      }}
+    >
+      <span
+        style={{
+          ...FONT,
+          fontSize: '11px',
+          fontWeight: isSelected ? 700 : 400,
+          color: isSelected ? '#0d1117' : '#6b7280',
+          lineHeight: 1,
+        }}
+      >
+        {dayNum}
+      </span>
+      {isToday && !isSelected ? (
+        <span
+          style={{
+            ...FONT,
+            fontSize: '7px',
+            fontWeight: 700,
+            color: '#00e5a0',
+            letterSpacing: '0.04em',
+            lineHeight: 1,
+          }}
+        >
+          {todayLabel}
+        </span>
+      ) : null}
+    </button>
+  )
+})
+
+interface Props {
+  value: string
+  onChange: (date: string) => void
+}
+
+export function AdminDateScrollBar({ value, onChange }: Props) {
+  const { t } = useTranslation()
+  const todayStr = localToday()
+  const dates = useMemo(() => buildDateRange(todayStr), [todayStr])
+  const from = dates[0]
+  const to = dates[dates.length - 1]
+
+  const { data: datesWithRecs = [] } = useDatesWithRecommendations(from, to)
+  const datesWithGamesSet = useMemo(() => new Set(datesWithRecs), [datesWithRecs])
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const todayRef = useRef<HTMLButtonElement>(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(dayjs(todayStr))
+
+  // Auto-scroll to today on mount
+  useEffect(() => {
+    if (todayRef.current && scrollRef.current) {
+      const container = scrollRef.current
+      const todayEl = todayRef.current
+      const offset = todayEl.offsetLeft - container.offsetWidth / 2 + todayEl.offsetWidth / 2
+      container.scrollLeft = offset
+    }
+  }, [])
+
+  const displayMonth = formatMonth(dayjs(value))
+
+  const firstDay = calendarMonth.startOf('month').day()
+  const daysInMonth = calendarMonth.daysInMonth()
+
+  const handleCalendarSelect = useCallback(
+    (dateStr: string) => {
+      onChange(dateStr)
+      setCalendarOpen(false)
+    },
+    [onChange],
+  )
+
+  return (
+    <div className="relative mb-1">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCalendarOpen((v) => !v)}
+          className="flex-shrink-0 w-[36px] h-[44px] rounded-[6px] flex items-center justify-center border border-[#1e2733] bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.07)] transition-colors"
+          aria-label="Open calendar"
+        >
+          <CalendarDots size={16} color="#6b7280" />
+        </button>
+
+        <div
+          ref={scrollRef}
+          className="flex gap-1 overflow-x-auto flex-1 no-scrollbar"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {dates.map((date) => {
+            const isToday = date === todayStr
+            const isSelected = date === value
+            const hasGames = datesWithGamesSet.has(date)
+            const opacity = getDateOpacity(date, todayStr)
+            const d = dayjs(date)
+
+            return (
+              <DateChip
+                key={date}
+                date={date}
+                isToday={isToday}
+                isSelected={isSelected}
+                hasGames={hasGames}
+                opacity={opacity}
+                todayLabel={t.dates.today}
+                weekdayLabel={t.dates.weekdaysShort[d.day()]}
+                dayNum={d.date()}
+                buttonRef={isToday ? todayRef : undefined}
+                onSelect={onChange}
+              />
+            )
+          })}
+        </div>
+      </div>
+
+      <div
+        style={{
+          ...FONT,
+          fontSize: '14px',
+          fontWeight: 600,
+          letterSpacing: '0.12em',
+          color: '#94a3b8',
+          marginTop: '4px',
+          paddingLeft: '44px',
+        }}
+      >
+        {displayMonth}
+      </div>
+
+      {calendarOpen && (
+        <div
+          className="absolute left-0 top-[56px] z-50 rounded-[10px] border border-[#1e2733] bg-[#0f1419] p-4 shadow-2xl"
+          style={{ minWidth: '240px' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
+              className="w-6 h-6 rounded flex items-center justify-center text-[#94a3b8] hover:text-[#e2e8f0]"
+              style={FONT}
+            >
+              ‹
+            </button>
+            <span
+              style={{
+                ...FONT,
+                fontSize: '14px',
+                fontWeight: 700,
+                color: '#a0aec0',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {formatMonth(calendarMonth)}
+            </span>
+            <button
+              onClick={() => setCalendarMonth((m) => m.add(1, 'month'))}
+              className="w-6 h-6 rounded flex items-center justify-center text-[#94a3b8] hover:text-[#e2e8f0]"
+              style={FONT}
+            >
+              ›
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 mb-1">
+            {t.dates.weekdaysShort.map((d, i) => (
+              <div
+                key={i}
+                style={{
+                  ...FONT,
+                  fontSize: '14px',
+                  color: '#94a3b8',
+                  textAlign: 'center',
+                  padding: '2px 0',
+                }}
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-y-1">
+            {Array.from({ length: firstDay }).map((_, i) => (
+              <div key={`empty-${i}`} />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const dayNum = i + 1
+              const dateStr = calendarMonth.date(dayNum).format('YYYY-MM-DD')
+              const isSelected = dateStr === value
+              const isToday = dateStr === todayStr
+              return (
+                <CalendarDay
+                  key={dayNum}
+                  dateStr={dateStr}
+                  dayNum={dayNum}
+                  isSelected={isSelected}
+                  isToday={isToday}
+                  todayLabel={t.dates.today}
+                  onSelect={handleCalendarSelect}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
