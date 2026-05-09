@@ -4,13 +4,11 @@ import dayjs from 'dayjs'
 import { CalendarDots } from '@phosphor-icons/react'
 import { localToday } from '@/lib/timezone'
 import { useTranslation } from '@/lib/i18n'
-import { usePredictionStore } from '@/stores/predictions/predictionStore'
 import { useDatesWithRecommendations } from '@/hooks/predictions/useDatesWithRecommendations'
-import { dateChipStyles } from './dateChipStyles'
+import { dateChipStyles } from '@/components/predictions/dateChipStyles'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
 
-/** Build array of YYYY-MM-DD strings: 7 days ago → today → 6 days ahead */
 function buildDateRange(referenceDate: string): string[] {
   const dates: string[] = []
   for (let i = -7; i <= 6; i++) {
@@ -19,7 +17,6 @@ function buildDateRange(referenceDate: string): string[] {
   return dates
 }
 
-/** Returns opacity 0.3–1.0 based on how far from today */
 function getDateOpacity(date: string, todayStr: string): number {
   const diff = Math.abs(dayjs(date).diff(dayjs(todayStr), 'day'))
   if (diff === 0) return 1
@@ -134,10 +131,13 @@ const CalendarDay = memo(function CalendarDay({
   )
 })
 
-export function DateScrollBar() {
+interface Props {
+  value: string
+  onChange: (date: string) => void
+}
+
+export function AdminDateScrollBar({ value, onChange }: Props) {
   const { t } = useTranslation()
-  const dateRange = usePredictionStore((s) => s.dateRange)
-  const setDateRange = usePredictionStore((s) => s.setDateRange)
   const todayStr = localToday()
   const dates = useMemo(() => buildDateRange(todayStr), [todayStr])
   const from = dates[0]
@@ -161,24 +161,22 @@ export function DateScrollBar() {
     }
   }, [])
 
-  const displayMonth = formatMonth(dayjs(dateRange))
+  const displayMonth = formatMonth(dayjs(value))
 
-  // Calendar popup: build days grid for calendarMonth
-  const firstDay = calendarMonth.startOf('month').day() // 0=Sun
+  const firstDay = calendarMonth.startOf('month').day()
   const daysInMonth = calendarMonth.daysInMonth()
 
   const handleCalendarSelect = useCallback(
     (dateStr: string) => {
-      setDateRange(dateStr)
+      onChange(dateStr)
       setCalendarOpen(false)
     },
-    [setDateRange],
+    [onChange],
   )
 
   return (
     <div className="relative mb-1">
       <div className="flex items-center gap-2">
-        {/* Calendar icon */}
         <button
           onClick={() => setCalendarOpen((v) => !v)}
           className="flex-shrink-0 w-[36px] h-[44px] rounded-[6px] flex items-center justify-center border border-[#1e2733] bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.07)] transition-colors"
@@ -187,7 +185,6 @@ export function DateScrollBar() {
           <CalendarDots size={16} color="#6b7280" />
         </button>
 
-        {/* Scrollable date chips */}
         <div
           ref={scrollRef}
           className="flex gap-1 overflow-x-auto flex-1 no-scrollbar"
@@ -195,7 +192,7 @@ export function DateScrollBar() {
         >
           {dates.map((date) => {
             const isToday = date === todayStr
-            const isSelected = date === dateRange
+            const isSelected = date === value
             const hasGames = datesWithGamesSet.has(date)
             const opacity = getDateOpacity(date, todayStr)
             const d = dayjs(date)
@@ -212,14 +209,13 @@ export function DateScrollBar() {
                 weekdayLabel={t.dates.weekdaysShort[d.day()]}
                 dayNum={d.date()}
                 buttonRef={isToday ? todayRef : undefined}
-                onSelect={setDateRange}
+                onSelect={onChange}
               />
             )
           })}
         </div>
       </div>
 
-      {/* Month label */}
       <div
         style={{
           ...FONT,
@@ -234,13 +230,11 @@ export function DateScrollBar() {
         {displayMonth}
       </div>
 
-      {/* Calendar popup */}
       {calendarOpen && (
         <div
           className="absolute left-0 top-[56px] z-50 rounded-[10px] border border-[#1e2733] bg-[#0f1419] p-4 shadow-2xl"
           style={{ minWidth: '240px' }}
         >
-          {/* Month nav */}
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => setCalendarMonth((m) => m.subtract(1, 'month'))}
@@ -249,7 +243,15 @@ export function DateScrollBar() {
             >
               ‹
             </button>
-            <span style={{ ...FONT, fontSize: '14px', fontWeight: 700, color: '#a0aec0', letterSpacing: '0.08em' }}>
+            <span
+              style={{
+                ...FONT,
+                fontSize: '14px',
+                fontWeight: 700,
+                color: '#a0aec0',
+                letterSpacing: '0.08em',
+              }}
+            >
               {formatMonth(calendarMonth)}
             </span>
             <button
@@ -261,25 +263,31 @@ export function DateScrollBar() {
             </button>
           </div>
 
-          {/* Day headers */}
           <div className="grid grid-cols-7 mb-1">
             {t.dates.weekdaysShort.map((d, i) => (
-              <div key={i} style={{ ...FONT, fontSize: '14px', color: '#94a3b8', textAlign: 'center', padding: '2px 0' }}>
+              <div
+                key={i}
+                style={{
+                  ...FONT,
+                  fontSize: '14px',
+                  color: '#94a3b8',
+                  textAlign: 'center',
+                  padding: '2px 0',
+                }}
+              >
                 {d}
               </div>
             ))}
           </div>
 
-          {/* Day cells */}
           <div className="grid grid-cols-7 gap-y-1">
-            {/* Empty cells before first day */}
             {Array.from({ length: firstDay }).map((_, i) => (
               <div key={`empty-${i}`} />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const dayNum = i + 1
               const dateStr = calendarMonth.date(dayNum).format('YYYY-MM-DD')
-              const isSelected = dateStr === dateRange
+              const isSelected = dateStr === value
               const isToday = dateStr === todayStr
               return (
                 <CalendarDay

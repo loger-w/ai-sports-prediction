@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { GameForm, type GameFormValue } from './GameForm'
 import { RecommendationFormRow, type RecFormValue } from './RecommendationFormRow'
-import { MlbScheduleImporter } from './MlbScheduleImporter'
+import { BatchImportWizard } from './BatchImportWizard'
 import { useTeams } from '@/hooks/useTeams'
 import { adminGamesApi, adminRecommendationsApi } from '@/services/admin/adminApi'
 import { localToday } from '@/lib/timezone'
@@ -17,6 +17,11 @@ const EMPTY_REC: RecFormValue = {
   line: null,
   stars: 3,
   audience: 'all',
+}
+
+interface RecRow {
+  key: string
+  value: RecFormValue
 }
 
 type Mode = 'import' | 'manual'
@@ -37,7 +42,7 @@ export function NewGamePage() {
     game_time: `${today} 19:00:00`,
     status: 'scheduled',
   })
-  const [recs, setRecs] = useState<RecFormValue[]>([EMPTY_REC])
+  const [recs, setRecs] = useState<RecRow[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   // Initialize team ids once teams load
@@ -59,7 +64,7 @@ export function NewGamePage() {
     }
     if (recs.length > 0) {
       const { error: recErr } = await adminRecommendationsApi.createRecommendations(
-        recs.map((r) => ({ ...r, game_id: id })),
+        recs.map((r) => ({ ...r.value, game_id: id })),
       )
       if (recErr) {
         toast.error(`比賽已建立，但推薦插入失敗：${recErr.message}`)
@@ -73,14 +78,24 @@ export function NewGamePage() {
     navigate({ to: '/admin' })
   }
 
-  function updateRec(idx: number, next: RecFormValue) {
-    setRecs((rs) => rs.map((r, i) => (i === idx ? next : r)))
+  function updateRec(idx: number, value: RecFormValue) {
+    setRecs((rs) => rs.map((r, i) => (i === idx ? { ...r, value } : r)))
   }
   function removeRec(idx: number) {
     setRecs((rs) => rs.filter((_, i) => i !== idx))
   }
   function addRec() {
-    setRecs((rs) => [...rs, EMPTY_REC])
+    setRecs((rs) => {
+      const taken = new Set(rs.map((r) => r.value.market))
+      const m = (['ml', 'spread', 'ou'] as const).find((x) => !taken.has(x)) ?? 'ml'
+      const value: RecFormValue = {
+        ...EMPTY_REC,
+        market: m,
+        pick: m === 'ou' ? 'over' : 'home',
+        line: m === 'ml' ? null : 0,
+      }
+      return [...rs, { key: crypto.randomUUID(), value }]
+    })
   }
 
   return (
@@ -125,7 +140,7 @@ export function NewGamePage() {
 
       {mode === 'import' ? (
         <section className="rounded-[10px] border border-[#1e2733] bg-[#161b22] p-6">
-          <MlbScheduleImporter />
+          <BatchImportWizard />
         </section>
       ) : (
         <>
@@ -144,7 +159,8 @@ export function NewGamePage() {
               <button
                 type="button"
                 onClick={addRec}
-                className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
+                disabled={recs.length >= 3}
+                className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 + 新增推薦
               </button>
@@ -152,14 +168,15 @@ export function NewGamePage() {
             <div className="space-y-3">
               {recs.map((r, i) => (
                 <RecommendationFormRow
-                  key={i}
-                  value={r}
+                  key={r.key}
+                  value={r.value}
                   onChange={(next) => updateRec(i, next)}
                   onRemove={() => removeRec(i)}
+                  marketsTaken={recs.filter((_, j) => j !== i).map((rr) => rr.value.market)}
                 />
               ))}
               {recs.length === 0 ? (
-                <p className="text-sm text-[#94a3b8]">尚未新增推薦。</p>
+                <p className="text-sm text-[#fc8181]">⚠ 請至少加 1 條推薦,才能建立比賽。</p>
               ) : null}
             </div>
           </section>
@@ -174,11 +191,11 @@ export function NewGamePage() {
             </button>
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || recs.length === 0}
               onClick={handleSubmit}
               className="px-6 py-2 rounded text-sm font-bold bg-[#00e5a0] text-[#0a0a0f] hover:bg-[#00c98a] disabled:opacity-60"
             >
-              {submitting ? '儲存中…' : '儲存'}
+              {submitting ? '儲存中…' : recs.length === 0 ? '請先加推薦' : '儲存'}
             </button>
           </div>
         </>

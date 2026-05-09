@@ -58,6 +58,13 @@ export function AdminLayout() {
             比賽
           </Link>
           <Link
+            to="/admin/games/by-date"
+            className={TAB_BASE}
+            activeProps={{ className: TAB_ACTIVE }}
+          >
+            按日期
+          </Link>
+          <Link
             to="/admin/users"
             className={TAB_BASE}
             activeProps={{ className: TAB_ACTIVE }}
