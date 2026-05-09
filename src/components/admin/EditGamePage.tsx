@@ -267,10 +267,11 @@ export function EditGamePage({ gameId }: { gameId: string }) {
       }
 
       toast.success('已儲存')
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'game', gameId] })
+      const fresh = queryClient.getQueryData<ExistingGame>(['admin', 'game', gameId])
+      if (fresh) setState(hydrate(fresh))
       void queryClient.invalidateQueries({ queryKey: ['admin', 'games', 'recent'] })
       void queryClient.invalidateQueries({ queryKey: ['recommendations'] })
-      setState(null)
     } catch (e) {
       const msg = e instanceof Error ? e.message : '未知錯誤'
       toast.error(`儲存失敗:${msg}`)
