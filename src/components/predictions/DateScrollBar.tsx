@@ -6,6 +6,7 @@ import { localToday } from '@/lib/timezone'
 import { useTranslation } from '@/lib/i18n'
 import { usePredictionStore } from '@/stores/predictions/predictionStore'
 import { useDatesWithRecommendations } from '@/hooks/predictions/useDatesWithRecommendations'
+import { dateChipStyles } from './dateChipStyles'
 
 const FONT = { fontFamily: 'var(--font-barlow-condensed)' }
 
@@ -56,56 +57,18 @@ const DateChip = memo(function DateChip({
   buttonRef,
   onSelect,
 }: DateChipProps) {
+  const styles = dateChipStyles({ isToday, isSelected, hasGames, opacity })
   return (
     <button
       ref={buttonRef}
       onClick={() => onSelect(date)}
       className="flex-shrink-0 relative flex flex-col items-center justify-center rounded-[6px] min-w-[44px] h-[44px]"
-      style={{
-        background: isToday
-          ? '#00e5a0'
-          : isSelected
-            ? 'rgba(255,255,255,0.1)'
-            : 'rgba(255,255,255,0.04)',
-        boxShadow: isToday ? '0 0 12px rgba(0,229,160,0.3)' : undefined,
-        opacity,
-      }}
+      style={styles.container}
     >
-      <span
-        style={{
-          ...FONT,
-          fontSize: '10px',
-          fontWeight: 700,
-          color: isToday ? '#0d1117' : '#a0aec0',
-          letterSpacing: '0.05em',
-          lineHeight: 1,
-        }}
-      >
-        {isToday ? todayLabel : weekdayLabel}
-      </span>
-      <span
-        style={{
-          ...FONT,
-          fontSize: '15px',
-          fontWeight: isToday ? 900 : 700,
-          color: isToday ? '#0d1117' : '#a0aec0',
-          lineHeight: 1.2,
-        }}
-      >
-        {dayNum}
-      </span>
-      {hasGames && !isToday && (
-        <span
-          style={{
-            position: 'absolute',
-            bottom: '2px',
-            width: '3px',
-            height: '3px',
-            borderRadius: '50%',
-            background: '#fbbf24',
-          }}
-        />
-      )}
+      <span style={styles.weekdayLabel}>{weekdayLabel}</span>
+      <span style={styles.dayNumber}>{dayNum}</span>
+      {styles.showTodayLabel && <span style={styles.todayLabel}>{todayLabel}</span>}
+      {styles.showHasGamesDot && <span style={styles.hasGamesDot} />}
     </button>
   )
 })
@@ -115,6 +78,7 @@ interface CalendarDayProps {
   dayNum: number
   isSelected: boolean
   isToday: boolean
+  todayLabel: string
   onSelect: (dateStr: string) => void
 }
 
@@ -123,23 +87,49 @@ const CalendarDay = memo(function CalendarDay({
   dayNum,
   isSelected,
   isToday,
+  todayLabel,
   onSelect,
 }: CalendarDayProps) {
   return (
     <button
       onClick={() => onSelect(dateStr)}
       style={{
-        ...FONT,
-        fontSize: '11px',
-        fontWeight: isToday || isSelected ? 700 : 400,
-        color: isSelected ? '#0d1117' : isToday ? '#00e5a0' : '#6b7280',
         background: isSelected ? '#00e5a0' : 'transparent',
         borderRadius: '4px',
         padding: '4px 0',
-        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1px',
+        minHeight: '24px',
       }}
     >
-      {dayNum}
+      <span
+        style={{
+          ...FONT,
+          fontSize: '11px',
+          fontWeight: isSelected ? 700 : 400,
+          color: isSelected ? '#0d1117' : '#6b7280',
+          lineHeight: 1,
+        }}
+      >
+        {dayNum}
+      </span>
+      {isToday && !isSelected ? (
+        <span
+          style={{
+            ...FONT,
+            fontSize: '7px',
+            fontWeight: 700,
+            color: '#00e5a0',
+            letterSpacing: '0.04em',
+            lineHeight: 1,
+          }}
+        >
+          {todayLabel}
+        </span>
+      ) : null}
     </button>
   )
 })
@@ -298,6 +288,7 @@ export function DateScrollBar() {
                   dayNum={dayNum}
                   isSelected={isSelected}
                   isToday={isToday}
+                  todayLabel={t.dates.today}
                   onSelect={handleCalendarSelect}
                 />
               )
