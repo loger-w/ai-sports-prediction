@@ -114,48 +114,37 @@ describe('BatchImportWizard', () => {
     expect(screen.getByText(/SF @ BOS/)).toBeInTheDocument()
   })
 
-  it('Step 2 starts with empty cards (warning visible, submit disabled)', async () => {
+  it('Step 2 pre-seeds each card with one default rec (warning hidden, submit enabled)', async () => {
     await renderWizard()
     await selectAndAdvance([0])
 
-    expect(screen.getByText(/請至少加 1 條推薦/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /建立/ })).toBeDisabled()
-  })
-
-  it('clicking + 加推薦 adds a default ML rec and clears the warning for that card', async () => {
-    await renderWizard()
-    await selectAndAdvance([0])
-
-    fireEvent.click(screen.getByRole('button', { name: /\+ 加推薦/ }))
+    // pre-seeded means no warning and the form is already visible
     expect(screen.queryByText(/請至少加 1 條推薦/)).not.toBeInTheDocument()
     expect(screen.getByRole('radiogroup', { name: '盤口' })).toBeInTheDocument()
-  })
-
-  it('submit is disabled while ANY card has zero recs', async () => {
-    await renderWizard()
-    await selectAndAdvance([0, 1])
-
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
-
-    expect(screen.getByRole('button', { name: /建立/ })).toBeDisabled()
-  })
-
-  it('submit is enabled once every card has at least one rec', async () => {
-    await renderWizard()
-    await selectAndAdvance([0, 1])
-
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
-
     expect(screen.getByRole('button', { name: /建立/ })).toBeEnabled()
   })
 
-  it('successful submit calls createGames + createRecommendations and navigates', async () => {
+  it('section header + 加推薦 button shows the count of remaining markets', async () => {
+    await renderWizard()
+    await selectAndAdvance([0])
+
+    // pre-seeded ML → 2 markets remaining (spread + ou)
+    expect(screen.getByRole('button', { name: /再加一條推薦/ })).toHaveTextContent(/2 個盤口可加/)
+  })
+
+  it('clicking + 加推薦 appends a 2nd rec to that card', async () => {
+    await renderWizard()
+    await selectAndAdvance([0])
+
+    expect(screen.getAllByRole('radiogroup', { name: '盤口' })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: /再加一條推薦/ }))
+    expect(screen.getAllByRole('radiogroup', { name: '盤口' })).toHaveLength(2)
+  })
+
+  it('successful submit creates one rec per game (one per card by default) and navigates', async () => {
     await renderWizard()
     await selectAndAdvance([0, 1])
 
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
     fireEvent.click(screen.getByRole('button', { name: /建立/ }))
 
     await waitFor(() => {
@@ -168,7 +157,7 @@ describe('BatchImportWizard', () => {
     await waitFor(() => {
       expect(mocks.createRecommendations).toHaveBeenCalledTimes(1)
     })
-    const recsArg = mocks.createRecommendations.mock.calls[0][0] as Array<{ game_id: string }>
+    const recsArg = mocks.createRecommendations.mock.calls[0][0] as { game_id: string }[]
     expect(recsArg.map((r) => r.game_id)).toEqual(['g11', 'g12'])
     expect(mocks.deleteGames).not.toHaveBeenCalled()
     expect(mocks.toastSuccess).toHaveBeenCalled()
@@ -180,8 +169,6 @@ describe('BatchImportWizard', () => {
     await renderWizard()
     await selectAndAdvance([0, 1])
 
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
     fireEvent.click(screen.getByRole('button', { name: /建立/ }))
 
     await waitFor(() => {
@@ -194,7 +181,6 @@ describe('BatchImportWizard', () => {
   it('← 回去改選擇 returns to Step 1 with selection preserved', async () => {
     await renderWizard()
     await selectAndAdvance([0])
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
 
     fireEvent.click(screen.getByRole('button', { name: /回去改選擇/ }))
 
@@ -206,8 +192,6 @@ describe('BatchImportWizard', () => {
   it('deselecting a game in Step 1 then re-advancing drops its rec data', async () => {
     await renderWizard()
     await selectAndAdvance([0, 1])
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
-    fireEvent.click(screen.getAllByRole('button', { name: /\+ 加推薦/ })[0])
 
     fireEvent.click(screen.getByRole('button', { name: /回去改選擇/ }))
     fireEvent.click(screen.getAllByRole('checkbox')[0])  // deselect first
@@ -217,7 +201,7 @@ describe('BatchImportWizard', () => {
       expect(screen.getByText(/SF @ BOS/)).toBeInTheDocument()
     })
     expect(screen.queryByText(/LAD @ NYY/)).not.toBeInTheDocument()
-    // Confirm the surviving card still has its previously-added rec (1 radiogroup, no warning)
+    // Surviving card still pre-seeded with 1 rec
     expect(screen.getAllByRole('radiogroup', { name: '盤口' })).toHaveLength(1)
     expect(screen.queryByText(/請至少加 1 條推薦/)).not.toBeInTheDocument()
   })

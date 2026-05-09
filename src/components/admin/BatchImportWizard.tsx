@@ -48,7 +48,13 @@ export function BatchImportWizard() {
       const next = new Map<number, SelectionEntry>()
       for (const g of games) {
         const existing = prev.get(g.external_game_id)
-        next.set(g.external_game_id, existing ?? { game: g, recs: [] })
+        next.set(
+          g.external_game_id,
+          existing ?? {
+            game: g,
+            recs: [{ key: crypto.randomUUID(), value: nextDefaultRec(new Set()) }],
+          },
+        )
       }
       return next
     })
@@ -186,9 +192,9 @@ export function BatchImportWizard() {
                   type="button"
                   aria-label="再加一條推薦"
                   onClick={() => addRec(e.game.external_game_id)}
-                  className="px-3 py-1.5 rounded text-xs font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
+                  className="px-3 py-1.5 rounded text-sm font-bold bg-[rgba(0,229,160,0.10)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.20)]"
                 >
-                  + 加推薦
+                  + 加推薦 ({3 - taken.size} 個盤口可加)
                 </button>
               )}
             </header>
