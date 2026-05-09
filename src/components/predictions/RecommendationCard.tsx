@@ -1,5 +1,7 @@
 import { Link } from '@tanstack/react-router'
+import { Pencil } from '@phosphor-icons/react'
 import { useTranslation } from '@/lib/i18n'
+import { useUser } from '@/lib/auth/useUser'
 import type { RecResult, RecommendationWithGame } from '@/types/predictions/recommendation'
 import { StarRating } from './StarRating'
 import { VoteButtons } from './VoteButtons'
@@ -59,6 +61,7 @@ function ResultBadge({ result }: { result: RecResult }) {
 
 export function RecommendationCard({ rec }: Props) {
   const { t } = useTranslation()
+  const { isAdmin } = useUser()
   const home = rec.game.home_team
   const away = rec.game.away_team
   const isLocked = rec.audience === 'premium' && rec.pick === null
@@ -83,6 +86,17 @@ export function RecommendationCard({ rec }: Props) {
         <div className="flex items-center gap-2">
           {rec.result ? <ResultBadge result={rec.result} /> : null}
           <span className="text-[15px] text-[#94a3b8]" style={FONT}>{time}</span>
+          {isAdmin ? (
+            <Link
+              to="/admin/games/$gameId"
+              params={{ gameId: rec.game.id }}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="編輯比賽"
+              className="inline-flex items-center justify-center w-6 h-6 rounded bg-[rgba(0,229,160,0.15)] text-[#00e5a0] border border-[rgba(0,229,160,0.30)] hover:bg-[rgba(0,229,160,0.25)] transition-colors"
+            >
+              <Pencil size={13} weight="bold" />
+            </Link>
+          ) : null}
         </div>
       </div>
 
